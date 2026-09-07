@@ -63,6 +63,13 @@
         <span class="text-zinc-400">ROOT:</span>
         <span class="text-zinc-300 truncate max-w-[110px]" id="top-merkle-root">Loading...</span>
       </div>
+      <button onclick="if(window.QuetzalcoatlTour) window.QuetzalcoatlTour.toggle()" id="tour-guide-btn"
+        class="px-3 py-1.5 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 font-semibold flex items-center gap-1.5 transition shadow-sm"
+        title="Start Interactive Tutorial Walkthrough Bot (Key: T)">
+        <span class="text-sm">🤖</span>
+        <span class="hidden sm:inline">Tour Bot</span>
+        <span class="text-[10px] text-zinc-600 mono">[T]</span>
+      </button>
       <button onclick="toggleGuideMode()" id="guide-mode-btn"
         class="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 flex items-center gap-1.5 transition"
         title="Toggle Explainer Guide Mode (Key: H)">
@@ -1181,6 +1188,7 @@
   </footer>
 
   <script src="/static/js/dither.js"></script>
+  <script src="/static/js/tour.js"></script>
   <script src="/static/js/app.js"></script>
 </body>
 
