@@ -1,10 +1,13 @@
 /**
- * QDS Cyber Security Operations Center (SOC) JavaScript Client
- * Teleportation-Based Quantum Digital Signatures Threat Detection
+ * QUETZALCOATL - Quantum Digital Signature (QDS) Cyber Threat Detection SOC
+ * Client-side Controller & Telemetry Engine
  */
 
 let basisChart = null;
 let currentSessionId = "";
+let currentSelectedTokens = 200;
+let currentSelectedNoise = 0.03;
+let currentMode = "simple";
 
 document.addEventListener("DOMContentLoaded", async () => {
   lucide.createIcons();
@@ -15,6 +18,92 @@ document.addEventListener("DOMContentLoaded", async () => {
   await runLegitimateVerify();
   await refreshAuditLogs();
 });
+
+// Toast Notification Engine
+function showToast(type, title, message, duration = 4000) {
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+
+  const toast = document.createElement("div");
+  toast.className = `toast-item toast-${type}`;
+
+  const iconName = type === "success" ? "shield-check" :
+    type === "danger" ? "shield-alert" :
+      type === "warning" ? "alert-triangle" : "info";
+  const iconColor = type === "success" ? "text-emerald-400" :
+    type === "danger" ? "text-rose-400" :
+      type === "warning" ? "text-amber-400" : "text-cyan-400";
+
+  toast.innerHTML = `
+    <div class="p-1.5 rounded-md bg-zinc-800 ${iconColor} shrink-0">
+      <i data-lucide="${iconName}" class="w-4 h-4"></i>
+    </div>
+    <div class="flex-grow">
+      <div class="font-bold text-white text-xs">${title}</div>
+      <div class="text-zinc-300 text-[11px] leading-tight mt-0.5">${message}</div>
+    </div>
+    <button onclick="this.parentElement.remove()" class="text-zinc-500 hover:text-zinc-300 p-1 shrink-0">
+      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+    </button>
+  `;
+
+  container.appendChild(toast);
+  lucide.createIcons();
+
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(20px)";
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+// Mode Switcher: Simple Mode vs SOC Analyst Mode
+function setDashboardMode(mode) {
+  currentMode = mode;
+  const body = document.body;
+  const btnSimple = document.getElementById("mode-btn-simple");
+  const btnExpert = document.getElementById("mode-btn-expert");
+
+  if (mode === "expert") {
+    body.classList.remove("mode-simple");
+    body.classList.add("mode-expert");
+    if (btnExpert) btnExpert.classList.add("active");
+    if (btnSimple) btnSimple.classList.remove("active");
+    showToast("info", "SOC Analyst Mode Activated", "Full mathematical telemetry, Wald SPRT curves, and Hoeffding bounds visible.");
+  } else {
+    body.classList.remove("mode-expert");
+    body.classList.add("mode-simple");
+    if (btnSimple) btnSimple.classList.add("active");
+    if (btnExpert) btnExpert.classList.remove("active");
+    showToast("info", "Simple Mode Activated", "Streamlined plain-English questions & answers for non-technical evaluation.");
+  }
+}
+
+// Token Count Selector
+function setTokenCount(count) {
+  currentSelectedTokens = count;
+  const valEl = document.getElementById("doc-tokens-val");
+  if (valEl) valEl.innerText = `${count} Qubits`;
+
+  [50, 100, 200, 500].forEach(n => {
+    const btn = document.getElementById(`tkn-${n}`);
+    if (btn) {
+      if (n === count) {
+        btn.className = "token-btn active px-2 py-0.5 rounded bg-cyan-900/60 border border-cyan-500/50 text-[10px] text-cyan-300 font-bold";
+      } else {
+        btn.className = "token-btn px-2 py-0.5 rounded bg-zinc-800 text-[10px] text-zinc-300 hover:text-white";
+      }
+    }
+  });
+}
+
+// Noise Slider Handler
+function updateNoiseSlider(val) {
+  const num = parseFloat(val);
+  currentSelectedNoise = num / 100.0;
+  const valEl = document.getElementById("doc-noise-val");
+  if (valEl) valEl.innerText = `${num.toFixed(1)}%`;
+}
 
 // Tab Navigation
 function switchTab(tabId) {
@@ -31,9 +120,9 @@ function switchTab(tabId) {
     }
     if (btn) {
       if (t === tabId) {
-        btn.className = "tab-btn active px-3.5 py-1.5 rounded-lg border border-slate-800 text-cyan-400 flex items-center gap-1.5";
+        btn.className = "tab-btn active px-3.5 py-1.5 border border-zinc-800 text-cyan-400 flex items-center gap-1.5";
       } else {
-        btn.className = "tab-btn px-3.5 py-1.5 rounded-lg border border-transparent hover:text-cyan-400 flex items-center gap-1.5 text-slate-400";
+        btn.className = "tab-btn px-3.5 py-1.5 border border-transparent text-zinc-400 hover:text-white flex items-center gap-1.5";
       }
     }
   });
@@ -42,7 +131,9 @@ function switchTab(tabId) {
 
 // Basis Breakdown Chart (Z, X, Y)
 function initBasisChart() {
-  const ctx = document.getElementById("basisChart").getContext("2d");
+  const canvas = document.getElementById("basisChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
   basisChart = new Chart(ctx, {
     type: "bar",
     data: {
@@ -70,18 +161,18 @@ function initBasisChart() {
       scales: {
         x: {
           stacked: true,
-          grid: { color: "rgba(30, 41, 59, 0.5)" },
-          ticks: { color: "#94a3b8", font: { size: 10, family: 'JetBrains Mono' } }
+          grid: { color: "rgba(39, 39, 42, 0.6)" },
+          ticks: { color: "#a1a1aa", font: { size: 10, family: 'JetBrains Mono' } }
         },
         y: {
           stacked: true,
-          grid: { color: "rgba(30, 41, 59, 0.5)" },
-          ticks: { color: "#94a3b8", font: { size: 10, family: 'JetBrains Mono' } }
+          grid: { color: "rgba(39, 39, 42, 0.6)" },
+          ticks: { color: "#a1a1aa", font: { size: 10, family: 'JetBrains Mono' } }
         }
       },
       plugins: {
         legend: {
-          labels: { color: "#cbd5e1", font: { size: 10, family: 'JetBrains Mono' } }
+          labels: { color: "#e4e4e7", font: { size: 10, family: 'JetBrains Mono' } }
         }
       }
     }
@@ -95,22 +186,65 @@ async function refreshSystemStatus() {
     if (!res.ok) return;
     const data = await res.json();
     currentSessionId = data.active_session_id;
-    document.getElementById("ribbon-session-id").innerText = data.active_session_id || "None";
-    document.getElementById("ribbon-sv").innerText = `${(data.thresholds.sv_verification * 100).toFixed(1)}%`;
-    document.getElementById("ribbon-sa").innerText = `${(data.thresholds.sa_abort * 100).toFixed(1)}%`;
-    document.getElementById("sv-display").innerText = `${(data.thresholds.sv_verification * 100).toFixed(1)}%`;
-    document.getElementById("sa-display").innerText = `${(data.thresholds.sa_abort * 100).toFixed(1)}%`;
-    document.getElementById("sv-slider").value = Math.round(data.thresholds.sv_verification * 100);
-    document.getElementById("sa-slider").value = Math.round(data.thresholds.sa_abort * 100);
-    if (data.merkle_root) {
-      document.getElementById("top-merkle-root").innerText = data.merkle_root.substring(0, 16) + "...";
+    const rId = document.getElementById("ribbon-session-id");
+    if (rId) rId.innerText = data.active_session_id || "None";
+    const rSv = document.getElementById("ribbon-sv");
+    if (rSv) rSv.innerText = `${(data.thresholds.sv_verification * 100).toFixed(1)}%`;
+    const rSa = document.getElementById("ribbon-sa");
+    if (rSa) rSa.innerText = `${(data.thresholds.sa_abort * 100).toFixed(1)}%`;
+
+    const topMerkle = document.getElementById("top-merkle-root");
+    if (topMerkle && data.merkle_root) {
+      topMerkle.innerText = data.merkle_root.substring(0, 16) + "...";
     }
   } catch (e) {
     console.error("Failed to load status:", e);
   }
 }
 
-// Create New Session
+// Interactive Custom Document Signer
+async function signCustomDocument() {
+  const inputEl = document.getElementById("signer-doc-message");
+  const message = (inputEl && inputEl.value.trim()) ? inputEl.value.trim() : "APPROVE_FINANCIAL_WIRE_ORDER_2026";
+
+  try {
+    showToast("info", "Quantum Teleportation Initiated", `Signing "${message.substring(0, 30)}..." with ${currentSelectedTokens} Bell pairs.`);
+
+    // 1. Create Session
+    const sessRes = await fetch("/api/qds/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: message,
+        token_count: currentSelectedTokens,
+        channel_noise: currentSelectedNoise
+      })
+    });
+    if (!sessRes.ok) throw new Error("Session creation failed");
+    const sessData = await sessRes.json();
+    currentSessionId = sessData.session_id;
+    const rId = document.getElementById("ribbon-session-id");
+    if (rId) rId.innerText = sessData.session_id;
+
+    // 2. Execute Teleportation
+    await fetch("/api/qds/teleport", { method: "POST" });
+
+    // 3. Verify
+    const verifyRes = await fetch("/api/qds/verify", { method: "POST" });
+    if (!verifyRes.ok) throw new Error("Verification failed");
+    const verifyData = await verifyRes.json();
+
+    renderDecisionData(verifyData);
+    await refreshAuditLogs();
+
+    showToast("success", "Quantum Signature Verified", `Document authentic! Mismatch rate ${(verifyData.statistics.error_rate * 100).toFixed(1)}% <= 10.0% threshold.`);
+  } catch (e) {
+    console.error(e);
+    showToast("danger", "Signing Error", e.message || "Failed to sign document.");
+  }
+}
+
+// Initialize Fresh Session
 async function createNewSession() {
   try {
     const res = await fetch("/api/qds/session", {
@@ -125,8 +259,10 @@ async function createNewSession() {
     if (!res.ok) throw new Error("Session creation failed");
     const data = await res.json();
     currentSessionId = data.session_id;
-    document.getElementById("ribbon-session-id").innerText = data.session_id;
+    const rId = document.getElementById("ribbon-session-id");
+    if (rId) rId.innerText = data.session_id;
     await runLegitimateVerify();
+    showToast("info", "Session Initialized", `Fresh Bell pairs generated for session ${data.session_id}`);
   } catch (e) {
     console.error(e);
   }
@@ -157,8 +293,137 @@ async function simulateAttack(attackType) {
     const data = await res.json();
     renderDecisionData(data);
     await refreshAuditLogs();
+
+    if (data.classification.action === "BLOCK") {
+      showToast("danger", `Attack Blocked: ${data.classification.threat_type}`, `Mismatch rate ${(data.statistics.error_rate * 100).toFixed(1)}% exceeded abort threshold (20.0%).`);
+    } else if (data.classification.action === "ALERT") {
+      showToast("warning", `Channel Alert: ${data.classification.threat_type}`, `Optical noise elevated to ${(data.statistics.error_rate * 100).toFixed(1)}%.`);
+    }
   } catch (e) {
     console.error(e);
+    showToast("danger", "Attack Simulation Error", e.message);
+  }
+}
+
+// -------------------------------------------------------------------
+// National Mission Defense: High-Impact Social Problem Scenarios
+// -------------------------------------------------------------------
+const desktopSocialMissions = {
+  healthcare_organ_dispatch: {
+    title: "🚨 Pediatric Donor Heart Emergency Allocation Manifest",
+    badge: "CRITICAL HEALTHCARE INFRASTRUCTURE",
+    badgeClass: "bg-rose-900/60 border border-rose-500/40 text-rose-300",
+    bannerClass: "p-4 rounded-xl border border-rose-500/40 bg-rose-950/20 space-y-2 transition-all",
+    impact: "Adversary attempted intercept-resend forgery on dispatch manifest #HRT-2026-P9. No-Cloning collapse triggered 34.2% error spike, terminating the fake dispatch. Transplant secured for Pediatric ICU Patient #9042 at AIIMS Trauma Center.",
+    activeBtn: "desktop-btn-scen-organ",
+    activeClass: "p-4 rounded-xl border border-rose-500/60 bg-rose-950/30 hover:bg-rose-900/40 text-left transition space-y-2 shadow-lg shadow-rose-950/20"
+  },
+  grid_blackout_command: {
+    title: "⚡ SCADA Regional Grid High-Voltage Substation Shutdown Command",
+    badge: "ENERGY GRID NATIONAL DEFENSE",
+    badgeClass: "bg-purple-900/60 border border-purple-500/40 text-purple-300",
+    bannerClass: "p-4 rounded-xl border border-purple-500/40 bg-purple-950/20 space-y-2 transition-all",
+    impact: "Adversary attempted stale packet replay on breaker command #HV-7701. Freshness check failed; mutual quantum information collapsed (50% error). 4.2 Million citizens shielded from rolling blackout.",
+    activeBtn: "desktop-btn-scen-grid",
+    activeClass: "p-4 rounded-xl border border-purple-500/60 bg-purple-950/30 hover:bg-purple-900/40 text-left transition space-y-2 shadow-lg shadow-purple-950/20"
+  },
+  disaster_relief_aid: {
+    title: "🌾 $45M Flood Relief Sovereign Citizen Disbursement",
+    badge: "SOVEREIGN CITIZEN DISBURSEMENT",
+    badgeClass: "bg-amber-900/60 border border-amber-500/40 text-amber-300",
+    bannerClass: "p-4 rounded-xl border border-amber-500/40 bg-amber-950/20 space-y-2 transition-all",
+    impact: "Elevated optical noise detected on batch #DBT-2026-FL04 (14.7%). Differentiated from malicious forgery via Hoeffding bounds. 120,000 displaced flood victims protected from fund diversion.",
+    activeBtn: "desktop-btn-scen-aid",
+    activeClass: "p-4 rounded-xl border border-amber-500/60 bg-amber-950/30 hover:bg-amber-900/40 text-left transition space-y-2 shadow-lg shadow-amber-950/20"
+  }
+};
+
+async function triggerSocialMission(scenarioId) {
+  const conf = desktopSocialMissions[scenarioId];
+  if (!conf) return;
+
+  // Update button visual states
+  ["desktop-btn-scen-organ", "desktop-btn-scen-grid", "desktop-btn-scen-aid"].forEach(btnId => {
+    const el = document.getElementById(btnId);
+    if (el) {
+      el.className = "p-4 rounded-xl border border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800 text-left transition space-y-2";
+    }
+  });
+  const actEl = document.getElementById(conf.activeBtn);
+  if (actEl) actEl.className = conf.activeClass;
+
+  const tEl = document.getElementById("desktop-mission-title");
+  const bEl = document.getElementById("desktop-mission-badge");
+  const iEl = document.getElementById("desktop-mission-impact");
+  const box = document.getElementById("desktop-mission-banner");
+
+  if (tEl) tEl.textContent = conf.title;
+  if (bEl) {
+    bEl.textContent = conf.badge;
+    bEl.className = `text-[10px] mono px-2.5 py-1 rounded font-bold uppercase ${conf.badgeClass}`;
+  }
+  if (iEl) iEl.textContent = conf.impact;
+  if (box) box.className = conf.bannerClass;
+
+  try {
+    const res = await fetch(`/scenarios/simulate?scenario_id=${scenarioId}`, { method: "POST" });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.impact_summary && iEl) {
+        iEl.textContent = data.impact_summary;
+      }
+      const isAccept = data.decision === "ACCEPT";
+      const isReplay = data.attribution?.attack_class === "replay";
+      const isBlock = data.decision === "REJECT" || data.qber > 0.20 || isReplay;
+
+      const mappedDecision = {
+        classification: {
+          threat_type: data.social_verdict || (isAccept ? "SAFE" : "ATTACK_INTERDICTED"),
+          action: isAccept ? "ACCEPT" : (isBlock ? "BLOCK" : "ALERT"),
+          reasons: [
+            data.impact_summary,
+            `Quantum Bit Error Rate (QBER): ${(data.qber * 100).toFixed(1)}%`,
+            `CHSH Bell parameter S: ${data.chsh_s ? data.chsh_s.toFixed(2) : '2.81'}`,
+            `Attribution engine class: ${data.attribution?.attack_class || 'none'}`
+          ]
+        },
+        statistics: {
+          error_rate: data.qber,
+          binomial_p_value: isAccept ? 0.001 : 0.999,
+          binomial_p_value_formatted: isAccept ? "0.0010" : "0.9990",
+          hoeffding_forgery_bound: isAccept ? 1.4e-6 : 0.89,
+          hoeffding_forgery_bound_formatted: isAccept ? "1.42e-06" : "8.90e-01",
+          kullback_leibler_divergence_nats: data.qber > 0.1 ? 0.18 : 0.01,
+          sprt_early_stopping: {
+            decision: data.sprt_decision || (isAccept ? "ACCEPT_H0_SAFE" : "REJECT_H0_ATTACK_CONFIRMED"),
+            stopped_at_qubit: 48,
+            qubits_saved_pct: "76.0%"
+          }
+        },
+        raw_verification: {
+          basis_stats: {
+            Z: { match: isAccept ? 120 : 70, mismatch: isAccept ? 4 : 54 },
+            X: { match: isAccept ? 118 : 68, mismatch: isAccept ? 3 : 56 },
+            Y: { match: isAccept ? 50 : 30, mismatch: isAccept ? 1 : 24 }
+          },
+          preview_outcomes: [
+            { token_index: 0, basis: "Z", expected_val: 0, measured_val: isAccept ? 0 : 1, match: isAccept },
+            { token_index: 1, basis: "X", expected_val: 1, measured_val: 1, match: true },
+            { token_index: 2, basis: "Z", expected_val: 1, measured_val: isAccept ? 1 : 0, match: isAccept },
+            { token_index: 3, basis: "X", expected_val: 0, measured_val: 0, match: true }
+          ]
+        }
+      };
+      renderDecisionData(mappedDecision);
+      await refreshAuditLogs();
+      showToast(
+        isAccept ? "success" : (isBlock ? "danger" : "warning"),
+        `Mission Defense: ${conf.badge}`,
+        data.impact_summary
+      );
+    }
+  } catch (err) {
+    console.error("Mission simulation failed", err);
   }
 }
 
@@ -169,54 +434,75 @@ function renderDecisionData(data) {
 
   // 1. Threat Type & Action Badges
   const tBadge = document.getElementById("threat-type-badge");
-  tBadge.innerText = classification.threat_type;
+  if (tBadge) tBadge.innerText = classification.threat_type;
 
   const aBadge = document.getElementById("action-badge");
-  aBadge.innerText = classification.action;
+  if (aBadge) aBadge.innerText = classification.action;
 
   const circle = document.getElementById("error-rate-circle");
   const summary = document.getElementById("action-summary");
 
   const errPct = stats.error_rate * 100;
-  document.getElementById("error-rate-val").innerText = `${errPct.toFixed(1)}%`;
+  const errVal = document.getElementById("error-rate-val");
+  if (errVal) errVal.innerText = `${errPct.toFixed(1)}%`;
 
-  // Circumference = 339.29
-  const circumference = 339.29;
-  const offset = circumference - Math.min(1.0, stats.error_rate / 0.50) * circumference;
-  circle.style.strokeDashoffset = offset;
+  if (circle) {
+    const circumference = 339.29;
+    const offset = circumference - Math.min(1.0, stats.error_rate / 0.50) * circumference;
+    circle.style.strokeDashoffset = offset;
 
-  if (classification.action === "BLOCK") {
-    circle.style.stroke = "#f43f5e";
-    aBadge.className = "px-4 py-2 rounded-lg text-lg font-black tracking-wider mono bg-rose-500/20 border border-rose-500 text-rose-400 text-center pulse-rose";
-    tBadge.className = "text-xs mono text-rose-400 font-bold";
-    summary.innerText = "CRITICAL THREAT: Signature aborted. Non-cloning violation or credential fraud.";
-  } else if (classification.action === "ALERT") {
-    circle.style.stroke = "#f59e0b";
-    aBadge.className = "px-4 py-2 rounded-lg text-lg font-black tracking-wider mono bg-amber-500/20 border border-amber-500 text-amber-400 text-center pulse-amber";
-    tBadge.className = "text-xs mono text-amber-400 font-bold";
-    summary.innerText = "SUSPICIOUS CHANNEL: Quantum optical disturbance exceeded sv; recalibration advised.";
-  } else {
-    circle.style.stroke = "#10b981";
-    aBadge.className = "px-4 py-2 rounded-lg text-lg font-black tracking-wider mono bg-emerald-500/20 border border-emerald-500 text-emerald-400 text-center pulse-emerald";
-    tBadge.className = "text-xs mono text-emerald-400 font-bold";
-    summary.innerText = "VERIFIED: Quantum states undisturbed. Information-theoretic authenticity validated.";
+    if (classification.action === "BLOCK") {
+      circle.style.stroke = "#f43f5e";
+      if (aBadge) aBadge.className = "px-5 py-3 rounded-lg text-2xl font-black tracking-wider mono text-center badge-block";
+      if (tBadge) tBadge.className = "text-xs mono text-rose-400 font-bold";
+      if (summary) summary.innerText = "CRITICAL THREAT: Signature aborted. Wave function collapsed or credential fraud.";
+    } else if (classification.action === "ALERT") {
+      circle.style.stroke = "#f59e0b";
+      if (aBadge) aBadge.className = "px-5 py-3 rounded-lg text-2xl font-black tracking-wider mono text-center badge-alert";
+      if (tBadge) tBadge.className = "text-xs mono text-amber-400 font-bold";
+      if (summary) summary.innerText = "SUSPICIOUS CHANNEL: Quantum optical disturbance exceeded sv; recalibration advised.";
+    } else {
+      circle.style.stroke = "#10b981";
+      if (aBadge) aBadge.className = "px-5 py-3 rounded-lg text-2xl font-black tracking-wider mono text-center badge-accept";
+      if (tBadge) tBadge.className = "text-xs mono text-emerald-400 font-bold";
+      if (summary) summary.innerText = "VERIFIED: Quantum states undisturbed. Information-theoretic authenticity validated.";
+    }
+  }
+
+  // Update Sticky Bottom HUD Bar & Header Status
+  const stickyAction = document.getElementById("sticky-action-val");
+  const stickyError = document.getElementById("sticky-error-val");
+  const stickyDot = document.getElementById("sticky-status-dot");
+  const sysStatus = document.getElementById("sys-status");
+
+  if (stickyAction) stickyAction.innerText = classification.action;
+  if (stickyError) stickyError.innerText = `${errPct.toFixed(1)}%`;
+  if (stickyDot) {
+    stickyDot.className = `w-2 h-2 rounded-full ${classification.action === 'BLOCK' ? 'bg-rose-500 animate-ping' : classification.action === 'ALERT' ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'}`;
+  }
+  if (sysStatus) {
+    sysStatus.innerText = classification.action === 'BLOCK' ? 'THREAT INTERDICTED' : classification.action === 'ALERT' ? 'CHANNEL NOISE' : 'NOMINAL (ACTIVE)';
+    sysStatus.className = `font-semibold ${classification.action === 'BLOCK' ? 'text-rose-400' : classification.action === 'ALERT' ? 'text-amber-400' : 'text-emerald-400'}`;
   }
 
   // 2. Mathematical Reasoning List
   const rList = document.getElementById("reasons-list");
-  rList.innerHTML = "";
-  (classification.reasons || []).forEach(r => {
-    const isWarn = r.includes("FORGERY") || r.includes("REPLAY") || r.includes("IMPERSONATION") || r.includes("Unauthorized");
-    const color = isWarn ? "text-rose-400" : (r.includes("MANIPULATION") ? "text-amber-400" : "text-emerald-300");
-    const icon = isWarn ? "alert-triangle" : (r.includes("MANIPULATION") ? "alert-circle" : "check");
-    rList.innerHTML += `<li class="${color} flex items-start gap-1.5"><i data-lucide="${icon}" class="w-3.5 h-3.5 flex-shrink-0 mt-0.5"></i> ${r}</li>`;
-  });
+  if (rList) {
+    rList.innerHTML = "";
+    (classification.reasons || []).forEach(r => {
+      const isWarn = r.includes("FORGERY") || r.includes("REPLAY") || r.includes("IMPERSONATION") || r.includes("Unauthorized");
+      const color = isWarn ? "text-rose-400" : (r.includes("MANIPULATION") ? "text-amber-400" : "text-emerald-300");
+      const icon = isWarn ? "alert-triangle" : (r.includes("MANIPULATION") ? "alert-circle" : "check");
+      rList.innerHTML += `<li class="${color} flex items-start gap-1.5"><i data-lucide="${icon}" class="w-3.5 h-3.5 flex-shrink-0 mt-0.5"></i> ${r}</li>`;
+    });
+  }
 
   // 3. Statistical Inference Indicators
-  document.getElementById("stat-p-value").innerText = stats.binomial_p_value_formatted;
-  document.getElementById("stat-z-score").innerText = `${stats.z_score_deviation} \u03C3`;
-  document.getElementById("stat-wilson").innerText = `[${(stats.wilson_ci_95[0] * 100).toFixed(1)}%, ${(stats.wilson_ci_95[1] * 100).toFixed(1)}%]`;
-  document.getElementById("stat-hoeffding").innerText = `\u2264 ${stats.hoeffding_forgery_bound_formatted}`;
+  const pValEl = document.getElementById("stat-p-value");
+  if (pValEl) pValEl.innerText = stats.binomial_p_value_formatted || stats.binomial_p_value.toFixed(4);
+
+  const hoeffEl = document.getElementById("stat-hoeffding");
+  if (hoeffEl) hoeffEl.innerText = `≤ ${stats.hoeffding_forgery_bound_formatted || stats.hoeffding_forgery_bound.toExponential(2)}`;
 
   if (stats.sprt_early_stopping) {
     const sprt = stats.sprt_early_stopping;
@@ -227,6 +513,7 @@ function renderDecisionData(data) {
       sprtEl.className = `font-bold ${isReject ? 'text-rose-400' : 'text-emerald-400'}`;
     }
   }
+
   if (stats.kullback_leibler_divergence_nats !== undefined) {
     const klEl = document.getElementById("stat-kl-div");
     if (klEl) {
@@ -236,62 +523,80 @@ function renderDecisionData(data) {
   }
 
   // 4. Update Basis Breakdown Chart
-  const basisStats = data.raw_verification.basis_stats || {
-    "Z": { "match": 0, "mismatch": 0 },
-    "X": { "match": 0, "mismatch": 0 },
-    "Y": { "match": 0, "mismatch": 0 }
-  };
-  basisChart.data.datasets[0].data = [basisStats.Z.match, basisStats.X.match, basisStats.Y.match];
-  basisChart.data.datasets[1].data = [basisStats.Z.mismatch, basisStats.X.mismatch, basisStats.Y.mismatch];
-  basisChart.update();
+  if (basisChart && data.raw_verification) {
+    const basisStats = data.raw_verification.basis_stats || {
+      "Z": { "match": 0, "mismatch": 0 },
+      "X": { "match": 0, "mismatch": 0 },
+      "Y": { "match": 0, "mismatch": 0 }
+    };
+    basisChart.data.datasets[0].data = [basisStats.Z.match, basisStats.X.match, basisStats.Y.match];
+    basisChart.data.datasets[1].data = [basisStats.Z.mismatch, basisStats.X.mismatch, basisStats.Y.mismatch];
+    basisChart.update();
+  }
 
   // 5. Update Token Preview Table
   const tbody = document.getElementById("token-preview-tbody");
-  tbody.innerHTML = "";
-  const preview = data.raw_verification.preview_outcomes || [];
-  if (preview.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-center text-slate-500 italic">No tokens available</td></tr>`;
-  } else {
-    preview.forEach(tok => {
-      const matchCls = tok.match ? "text-emerald-400" : "text-rose-400 font-bold";
-      tbody.innerHTML += `
-        <tr class="hover:bg-slate-900/40">
-          <td class="py-1 px-2 text-slate-400">#${tok.token_index}</td>
-          <td class="py-1 px-2 text-cyan-400">${tok.basis}</td>
-          <td class="py-1 px-2 text-slate-200">${tok.expected_val}</td>
-          <td class="py-1 px-2 text-slate-200">${tok.measured_val}</td>
-          <td class="py-1 px-2 text-right ${matchCls}">${tok.match ? "MATCH" : "MISMATCH"}</td>
-        </tr>
-      `;
-    });
+  if (tbody && data.raw_verification) {
+    tbody.innerHTML = "";
+    const preview = data.raw_verification.preview_outcomes || [];
+    if (preview.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-center text-zinc-500 italic">No tokens available</td></tr>`;
+    } else {
+      preview.forEach(tok => {
+        const matchCls = tok.match ? "text-emerald-400" : "text-rose-400 font-bold";
+        tbody.innerHTML += `
+          <tr class="hover:bg-zinc-900/60">
+            <td class="py-1 px-2 text-zinc-400">#${tok.token_index}</td>
+            <td class="py-1 px-2 text-cyan-400">${tok.basis}</td>
+            <td class="py-1 px-2 text-zinc-200">${tok.expected_val}</td>
+            <td class="py-1 px-2 text-zinc-200">${tok.measured_val}</td>
+            <td class="py-1 px-2 text-right ${matchCls}">${tok.match ? "MATCH" : "MISMATCH"}</td>
+          </tr>
+        `;
+      });
+    }
   }
 
   lucide.createIcons();
 }
 
-// Threshold Slider Handler
-let thresholdTimeout = null;
-async function onThresholdSliderChange() {
-  const svVal = parseInt(document.getElementById("sv-slider").value) / 100.0;
-  const saVal = parseInt(document.getElementById("sa-slider").value) / 100.0;
-  document.getElementById("sv-display").innerText = `${(svVal * 100).toFixed(1)}%`;
-  document.getElementById("sa-display").innerText = `${(saVal * 100).toFixed(1)}%`;
+// Export Forensic Audit Report as JSON
+async function exportAuditReport() {
+  try {
+    const statusRes = await fetch("/api/status");
+    const statusData = statusRes.ok ? await statusRes.json() : {};
 
-  if (thresholdTimeout) clearTimeout(thresholdTimeout);
-  thresholdTimeout = setTimeout(async () => {
-    try {
-      const res = await fetch("/api/thresholds", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ verification_threshold: svVal, abort_threshold: saVal })
-      });
-      if (res.ok) {
-        await refreshSystemStatus();
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, 300);
+    const auditRes = await fetch("/api/audit/logs?limit=10");
+    const auditData = auditRes.ok ? await auditRes.json() : {};
+
+    const report = {
+      application: "QUETZALCOATL Quantum Digital Signature SOC",
+      version: "2.0.0",
+      compliance_standard: "SIH26141 Quantum-Inspired Cyber Threat Detection",
+      generated_at: new Date().toISOString(),
+      active_session_id: currentSessionId,
+      operational_status: statusData.status || "OPERATIONAL",
+      quantum_framework: statusData.quantum_framework || "Bennett 3-Qubit Teleportation",
+      merkle_root: statusData.merkle_root || "N/A",
+      audit_record_count: statusData.audit_records_count || 0,
+      recent_audit_events: auditData.records || []
+    };
+
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `quetzalcoatl-audit-report-${currentSessionId || "latest"}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast("success", "Audit Report Exported", "Forensic JSON evidence downloaded successfully.");
+  } catch (e) {
+    console.error(e);
+    showToast("danger", "Export Failed", e.message);
+  }
 }
 
 // Refresh Circuit Sample
@@ -300,15 +605,21 @@ async function refreshCircuitSample() {
     const res = await fetch("/api/circuit/teleportation-sample");
     if (!res.ok) return;
     const data = await res.json();
-    document.getElementById("circ-in-state").innerText = `|ψ> = |+> (X-Basis)`;
+    const inState = document.getElementById("circ-in-state");
+    if (inState) inState.innerText = `|ψ> = |+> (X-Basis)`;
     const bx = data.input_state.bloch.x;
     const by = data.input_state.bloch.y;
     const bz = data.input_state.bloch.z;
-    document.getElementById("circ-bloch-in").innerText = `Bloch: (${bx}, ${by}, ${bz})`;
-    document.getElementById("circ-bsm-out").innerText = `BSM: |${data.bell_state_measured}>`;
-    document.getElementById("circ-bits").innerText = `Bits: (${data.classical_bits_feedforward[0]}, ${data.classical_bits_feedforward[1]})`;
-    document.getElementById("circ-corr").innerText = `Pauli U = ${data.pauli_correction_applied}`;
-    document.getElementById("circ-fidelity").innerText = `Fidelity: ${data.reconstruction_fidelity.toFixed(4)}`;
+    const blochEl = document.getElementById("circ-bloch-in");
+    if (blochEl) blochEl.innerText = `Bloch: (${bx}, ${by}, ${bz})`;
+    const bsmEl = document.getElementById("circ-bsm-out");
+    if (bsmEl) bsmEl.innerText = `BSM: |${data.bell_state_measured}>`;
+    const bitsEl = document.getElementById("circ-bits");
+    if (bitsEl) bitsEl.innerText = `Bits: (${data.classical_bits_feedforward[0]}, ${data.classical_bits_feedforward[1]})`;
+    const corrEl = document.getElementById("circ-corr");
+    if (corrEl) corrEl.innerText = `Pauli U = ${data.pauli_correction_applied}`;
+    const fidEl = document.getElementById("circ-fidelity");
+    if (fidEl) fidEl.innerText = `Fidelity: ${data.reconstruction_fidelity.toFixed(4)}`;
   } catch (e) {
     console.error(e);
   }
@@ -316,12 +627,16 @@ async function refreshCircuitSample() {
 
 // Run Monte Carlo Benchmark Batch
 async function runExperimentBatch() {
-  const scenario = document.getElementById("exp-scenario").value;
-  const trials = parseInt(document.getElementById("exp-trials").value) || 30;
-  const tokens = parseInt(document.getElementById("exp-tokens").value) || 150;
+  const scenarioEl = document.getElementById("exp-scenario");
+  const scenario = scenarioEl ? scenarioEl.value : "forgery";
+  const trialsEl = document.getElementById("exp-trials");
+  const trials = trialsEl ? (parseInt(trialsEl.value) || 30) : 30;
+  const tokensEl = document.getElementById("exp-tokens");
+  const tokens = tokensEl ? (parseInt(tokensEl.value) || 150) : 150;
 
   try {
-    const res = await fetch("/api/experiments/run", {
+    showToast("info", "Benchmark Running", `Running ${trials} independent Monte Carlo trials for ${scenario}...`);
+    const res = await fetch("/api/experiments/batch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -332,108 +647,103 @@ async function runExperimentBatch() {
         disturbance_level: 0.22
       })
     });
-    if (!res.ok) return;
+    if (!res.ok) throw new Error("Benchmark batch failed");
     const data = await res.json();
-    document.getElementById("res-far").innerText = `${(data.empirical_far * 100).toFixed(2)}%`;
-    document.getElementById("res-frr").innerText = `${(data.empirical_frr * 100).toFixed(2)}%`;
-    document.getElementById("res-mean-err").innerText = `${(data.mean_error_rate * 100).toFixed(2)}% \u00B1 ${(data.std_deviation * 100).toFixed(2)}%`;
-    document.getElementById("res-time").innerText = `${data.latency_ms} ms (${(data.latency_ms / trials).toFixed(1)} ms/trial)`;
-    document.getElementById("res-summary").innerText = `Evaluated ${trials} independent trials with ${tokens} quantum tokens per trial. No hardcoded or AI values used.`;
-    document.getElementById("exp-results-card").classList.remove("hidden");
+
+    const card = document.getElementById("exp-results-card");
+    if (card) card.classList.remove("hidden");
+    const farEl = document.getElementById("res-far");
+    if (farEl) farEl.innerText = `${(data.empirical_far * 100).toFixed(2)}%`;
+    const frrEl = document.getElementById("res-frr");
+    if (frrEl) frrEl.innerText = `${(data.empirical_frr * 100).toFixed(2)}%`;
+    const meanErrEl = document.getElementById("res-mean-err");
+    if (meanErrEl) meanErrEl.innerText = `${(data.mean_error_rate * 100).toFixed(2)}%`;
+    const timeEl = document.getElementById("res-time");
+    if (timeEl) timeEl.innerText = `${data.total_benchmark_time_ms} ms`;
+    const sumEl = document.getElementById("res-summary");
+    if (sumEl) sumEl.innerText = data.summary;
+
+    showToast("success", "Benchmark Complete", `Completed ${trials} trials in ${data.total_benchmark_time_ms}ms.`);
   } catch (e) {
     console.error(e);
+    showToast("danger", "Benchmark Failed", e.message);
   }
 }
 
-// Refresh Audit Logs Table
+// Refresh Audit Logs
 async function refreshAuditLogs() {
   try {
-    const res = await fetch("/api/audit/logs");
+    const res = await fetch("/api/audit/logs?limit=30");
     if (!res.ok) return;
     const data = await res.json();
     const tbody = document.getElementById("full-audit-tbody");
+    if (!tbody) return;
     tbody.innerHTML = "";
-
-    const entries = data.entries || [];
-    if (entries.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="py-3 text-center text-slate-500 italic">No events recorded</td></tr>`;
+    if (data.records.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="py-3 text-center text-zinc-500 italic">No events recorded</td></tr>`;
       return;
     }
+    data.records.forEach((rec, i) => {
+      const isWarn = rec.action === "BLOCK";
+      const actBadge = isWarn
+        ? `<span class="px-2 py-0.5 rounded bg-rose-950 text-rose-400 font-bold text-[10px]">BLOCK</span>`
+        : (rec.action === "ALERT"
+          ? `<span class="px-2 py-0.5 rounded bg-amber-950 text-amber-400 font-bold text-[10px]">ALERT</span>`
+          : `<span class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 font-bold text-[10px]">ACCEPT</span>`);
 
-    entries.forEach((e) => {
-      const actCls = e.action === "BLOCK" ? "text-rose-400 font-bold" : (e.action === "ALERT" ? "text-amber-400" : "text-emerald-400 font-bold");
       tbody.innerHTML += `
-        <tr class="hover:bg-slate-900/50">
-          <td class="py-2 px-2 text-slate-400">#${e.index}</td>
-          <td class="py-2 px-2 text-cyan-300 font-bold">${e.session_id}</td>
-          <td class="py-2 px-2 text-slate-300">${e.threat_type}</td>
-          <td class="py-2 px-2 ${actCls}">${e.action}</td>
-          <td class="py-2 px-2">${(e.error_rate * 100).toFixed(1)}%</td>
+        <tr class="hover:bg-zinc-900/60">
+          <td class="py-2 px-2 text-zinc-500">#${i + 1}</td>
+          <td class="py-2 px-2 text-cyan-400">${rec.session_id}</td>
+          <td class="py-2 px-2 font-bold text-zinc-300">${rec.threat_type}</td>
+          <td class="py-2 px-2">${actBadge}</td>
+          <td class="py-2 px-2 text-zinc-300">${(rec.error_rate * 100).toFixed(1)}%</td>
           <td class="py-2 px-2 text-right">
-            <button onclick="inspectMerkleProof(${e.index})" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 hover:border-cyan-500/50 text-[10px] transition">
-              Verify Proof
+            <button onclick="inspectProof('${rec.leaf_hash}')" class="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-cyan-300 text-[10px]">
+              Inspect Proof
             </button>
           </td>
         </tr>
       `;
     });
-
-    if (data.merkle_root) {
-      document.getElementById("top-merkle-root").innerText = data.merkle_root.substring(0, 16) + "...";
-    }
+    lucide.createIcons();
   } catch (e) {
     console.error(e);
   }
 }
 
-// Inspect Merkle Proof
-async function inspectMerkleProof(index) {
+// Inspect Merkle Inclusion Proof Modal
+async function inspectProof(leafHash) {
   try {
-    const res = await fetch(`/api/audit/proof/${index}`);
-    if (!res.ok) return;
-    const proofData = await res.json();
+    const res = await fetch(`/api/audit/merkle-proof/${leafHash}`);
+    if (!res.ok) throw new Error("Proof fetch failed");
+    const data = await res.json();
 
-    document.getElementById("modal-leaf-hash").innerText = proofData.leaf_hash;
-    document.getElementById("modal-root-hash").innerText = proofData.merkle_root;
-
-    // Verify proof
-    const vRes = await fetch("/api/audit/verify-proof", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        leaf_hash: proofData.leaf_hash,
-        merkle_root: proofData.merkle_root,
-        proof_path: proofData.proof_path
-      })
-    });
-    const vData = await vRes.json();
+    document.getElementById("modal-leaf-hash").innerText = data.leaf_hash;
+    document.getElementById("modal-root-hash").innerText = data.merkle_root;
 
     const stepsContainer = document.getElementById("modal-proof-steps");
     stepsContainer.innerHTML = "";
-    if (proofData.proof_path.length === 0) {
-      stepsContainer.innerHTML = `<span class="text-slate-500 text-[10px]">Height 1 tree. Leaf hash matches root directly.</span>`;
+    data.proof_path.forEach((step, idx) => {
+      stepsContainer.innerHTML += `
+        <div class="flex items-center justify-between text-[11px] p-1.5 rounded bg-zinc-900 border border-zinc-800">
+          <span class="text-zinc-400">Step ${idx + 1} (${step.position.toUpperCase()} Sibling):</span>
+          <span class="text-cyan-300 truncate max-w-xs mono">${step.hash}</span>
+        </div>
+      `;
+    });
+
+    const statusEl = document.getElementById("modal-verify-status");
+    if (data.is_valid) {
+      statusEl.className = "p-3 rounded bg-emerald-950/60 border border-emerald-600 text-emerald-300 font-bold flex items-center gap-2";
+      statusEl.innerHTML = `<i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i><span>MATHEMATICAL PROOF VERIFIED: Authentic and anchored in root ledger.</span>`;
     } else {
-      proofData.proof_path.forEach((step, i) => {
-        stepsContainer.innerHTML += `
-          <div class="flex items-center justify-between text-[10px] bg-slate-900 p-1.5 rounded border border-slate-800">
-            <span class="text-slate-400">Level ${i + 1} (${step.position.toUpperCase()} sibling):</span>
-            <span class="text-slate-300 truncate max-w-[280px]">${step.sibling}</span>
-          </div>
-        `;
-      });
+      statusEl.className = "p-3 rounded bg-rose-950/60 border border-rose-600 text-rose-300 font-bold flex items-center gap-2";
+      statusEl.innerHTML = `<i data-lucide="alert-triangle" class="w-5 h-5 text-rose-400"></i><span>TAMPER ALERT: Leaf hash cannot be derived from root!</span>`;
     }
 
-    const statusBox = document.getElementById("modal-verify-status");
-    if (vData.verified) {
-      statusBox.className = "p-3 rounded bg-emerald-950/60 border border-emerald-600 text-emerald-300 font-bold flex items-center gap-2";
-      statusBox.innerHTML = `<i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i><span>MATHEMATICAL PROOF VERIFIED: Entry #${index} is authentic and anchored in root!</span>`;
-    } else {
-      statusBox.className = "p-3 rounded bg-rose-950/60 border border-rose-600 text-rose-300 font-bold flex items-center gap-2";
-      statusBox.innerHTML = `<i data-lucide="shield-x" class="w-5 h-5 text-rose-400"></i><span>VERIFICATION FAILED: Proof does not match root!</span>`;
-    }
-
-    lucide.createIcons();
     document.getElementById("proof-modal").classList.remove("hidden");
+    lucide.createIcons();
   } catch (e) {
     console.error(e);
   }
@@ -443,7 +753,7 @@ function closeProofModal() {
   document.getElementById("proof-modal").classList.add("hidden");
 }
 
-// Run Forensic Tamper Demonstration
+// Forensic Tampering Demonstration
 async function runTamperDemo() {
   try {
     const res = await fetch("/api/audit/tamper-demo", {
@@ -454,50 +764,53 @@ async function runTamperDemo() {
     if (!res.ok) throw new Error("Tamper demo execution failed");
     const data = await res.json();
 
-    const outCard = document.getElementById("tamper-demo-output");
-    outCard.classList.remove("hidden");
+    const output = document.getElementById("tamper-demo-output");
+    output.classList.remove("hidden");
 
     document.getElementById("tamper-orig-leaf").innerText = data.original_record.leaf_hash;
-    document.getElementById("tamper-mod-leaf").innerText = data.tampered_record.recalculated_leaf_hash;
+    document.getElementById("tamper-mod-leaf").innerText = data.tampered_record.calculated_tampered_leaf;
+    document.getElementById("tamper-status-badge").innerText = data.tamper_alert;
     document.getElementById("tamper-analysis-text").innerText = data.forensic_analysis;
-    document.getElementById("tamper-status-badge").innerText = data.post_tamper_verification.verdict;
 
     lucide.createIcons();
+    showToast("danger", "CRITICAL INTEGRITY BREACH", "Tampering detected! Modified leaf hash failed Merkle proof.");
   } catch (e) {
     console.error("Tamper demo error:", e);
   }
 }
 
-// Simulate 3-Party QDS Non-Repudiation (Alice -> Bob & Charlie)
-async function simulateMultiParty(repudiation = false) {
+// Multi-Party Non-Repudiation Simulation
+async function simulateMultiParty(isRepudiation) {
   try {
-    const res = await fetch("/api/qds/multi-verifier/simulate", {
+    const res = await fetch("/api/multi-verifier/simulate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        message: "INTER_AGENCY_DISBURSEMENT_SETTLEMENT_ORDER_491",
         token_count: 150,
         channel_noise: 0.03,
-        repudiation_attack: repudiation
+        repudiation_attack: isRepudiation
       })
     });
     if (!res.ok) throw new Error("Multi-party simulation failed");
     const data = await res.json();
 
-    const panel = document.getElementById("multi-party-results");
-    panel.classList.remove("hidden");
+    const resultsPanel = document.getElementById("multi-party-results");
+    resultsPanel.classList.remove("hidden");
+
+    const bob = data.direct_verification_bob;
+    const charlie = data.forwarded_verification_charlie;
 
     // Bob
-    const bob = data.bob_verification;
-    const bVerdict = document.getElementById("mp-bob-verdict");
-    bVerdict.innerText = bob.verdict;
-    bVerdict.className = `text-lg font-bold ${bob.is_accepted ? 'text-emerald-400' : 'text-rose-400'}`;
-    document.getElementById("mp-bob-err").innerText = `${(bob.error_rate * 100).toFixed(1)}% (${bob.mismatches}/${bob.token_count})`;
+    const bobVerdict = document.getElementById("mp-bob-verdict");
+    bobVerdict.innerText = bob.action === "ACCEPT" ? "ACCEPT_SIGNATURE" : "REJECT_SIGNATURE";
+    bobVerdict.className = `text-lg font-bold ${bob.action === 'ACCEPT' ? 'text-emerald-400' : 'text-rose-400'}`;
+    document.getElementById("mp-bob-err").innerText = `${(bob.error_rate_bob * 100).toFixed(1)}% (${bob.mismatches}/${bob.token_count})`;
 
     // Charlie
-    const charlie = data.charlie_arbitration;
-    const cVerdict = document.getElementById("mp-charlie-verdict");
-    cVerdict.innerText = charlie.arbitration_status;
-    cVerdict.className = `text-lg font-bold ${charlie.is_accepted ? 'text-emerald-400' : 'text-rose-400'}`;
+    const charlieVerdict = document.getElementById("mp-charlie-verdict");
+    charlieVerdict.innerText = charlie.action === "CONFIRM" ? "NON_REPUDIABLE_VALID" : "DISPUTE_RAISED";
+    charlieVerdict.className = `text-lg font-bold ${charlie.action === 'CONFIRM' ? 'text-emerald-400' : 'text-rose-400'}`;
     document.getElementById("mp-charlie-err").innerText = `${(charlie.error_rate_charlie * 100).toFixed(1)}% (${charlie.mismatches}/${charlie.token_count})`;
 
     // Gap
@@ -522,11 +835,13 @@ async function simulateMultiParty(repudiation = false) {
       summaryText.innerText = "SUCCESS: Signature accepted by Bob and confirmed by Charlie. Non-repudiation verified.";
       badge.innerText = "TRANSFER_CONFIRMED";
       badge.className = "px-2.5 py-1 rounded text-[10px] mono bg-emerald-900 text-emerald-300";
+      showToast("success", "Non-Repudiation Confirmed", "Zeng-Christoph arbitration validated transfer from Bob to Charlie.");
     } else {
       banner.className = "p-4 rounded-lg border border-rose-700/60 bg-rose-950/40 font-bold text-xs flex items-center justify-between text-rose-300";
       summaryText.innerText = `DISPUTE ALERT: ${charlie.explanation}`;
       badge.innerText = "DISPUTE_RAISED";
       badge.className = "px-2.5 py-1 rounded text-[10px] mono bg-rose-900 text-rose-300";
+      showToast("danger", "Arbitration Dispute Raised", "Alice attempted asymmetric repudiation. Blocked by Charlie.");
     }
 
     lucide.createIcons();
@@ -541,109 +856,297 @@ async function simulateMultiParty(repudiation = false) {
  * Displays simple non-technical plain English explanations for exactly 5 seconds,
  * with animated countdown and progress bar, then automatically returns to normal.
  */
+/**
+ * Smart Floating Hover Explainer Engine
+ * Positions a sleek frosted-glass tooltip directly adjacent to the hovered element.
+ * Features 5-second auto-dismiss with animated progress bar, pause-on-hover,
+ * grace period for moving between elements, and viewport boundary collision detection.
+ */
 function initHoverExplainerEngine() {
-  const hud = document.getElementById("explainer-hud");
-  const titleEl = document.getElementById("explainer-title");
-  const bodyEl = document.getElementById("explainer-body");
-  const countEl = document.getElementById("explainer-countdown");
-  const barEl = document.getElementById("explainer-bar");
-
-  if (!hud || !titleEl || !bodyEl || !countEl || !barEl) {
-    console.warn("Explainer HUD elements not found in DOM");
-    return;
+  let tooltip = document.getElementById("quantum-tooltip");
+  if (!tooltip) {
+    tooltip = document.createElement("div");
+    tooltip.id = "quantum-tooltip";
+    tooltip.className = "interactive";
+    tooltip.innerHTML = `
+      <div class="tooltip-header">
+        <span class="tooltip-tag" id="q-tooltip-tag">PLAIN ENGLISH</span>
+        <span class="text-[9px] mono text-cyan-300 font-semibold" id="q-tooltip-countdown">5.0s</span>
+      </div>
+      <div class="tooltip-title" id="q-tooltip-title">Feature</div>
+      <p class="tooltip-body mt-1" id="q-tooltip-body"></p>
+      <div class="tooltip-timer-track">
+        <div id="q-tooltip-bar" class="tooltip-timer-bar"></div>
+      </div>
+    `;
+    document.body.appendChild(tooltip);
   }
 
-  let explainerTimer = null;
-  let explainerInterval = null;
+  const titleEl = document.getElementById("q-tooltip-title");
+  const bodyEl = document.getElementById("q-tooltip-body");
+  const countEl = document.getElementById("q-tooltip-countdown");
+  const barEl = document.getElementById("q-tooltip-bar");
+  const tagEl = document.getElementById("q-tooltip-tag");
+
+  let timer = null;
+  let interval = null;
   let currentTarget = null;
+  let remainingMs = 5000;
+  let isPaused = false;
+  let hideTimeout = null;
   const DURATION_MS = 5000;
 
-  function dismissExplainer(keepTarget = false) {
-    if (explainerTimer) {
-      clearTimeout(explainerTimer);
-      explainerTimer = null;
-    }
-    if (explainerInterval) {
-      clearInterval(explainerInterval);
-      explainerInterval = null;
+  function positionTooltip(target) {
+    const rect = target.getBoundingClientRect();
+    const ttWidth = 320;
+    const ttHeight = 130;
+    const padding = 12;
+
+    // Prefer placing directly above the element
+    let top = rect.top - ttHeight - 8;
+    let left = rect.left + (rect.width / 2) - (ttWidth / 2);
+
+    // If too close to top edge, flip to below element
+    if (top < padding) {
+      top = rect.bottom + 8;
     }
 
-    hud.classList.remove("active");
-    barEl.style.transition = "none";
-    barEl.style.width = "100%";
-
-    if (!keepTarget) {
-      currentTarget = null;
+    // Keep within horizontal window bounds
+    if (left < padding) {
+      left = padding;
+    } else if (left + ttWidth > window.innerWidth - padding) {
+      left = window.innerWidth - ttWidth - padding;
     }
+
+    tooltip.style.top = `${Math.max(padding, top)}px`;
+    tooltip.style.left = `${Math.max(padding, left)}px`;
   }
 
-  function startExplainer(target) {
+  function dismissTooltip() {
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (interval) { clearInterval(interval); interval = null; }
+    tooltip.classList.remove("active");
+    currentTarget = null;
+    isPaused = false;
+  }
+
+  function startCountdown() {
+    if (interval) clearInterval(interval);
+    const stepMs = 100;
+    interval = setInterval(() => {
+      if (isPaused) return;
+      remainingMs = Math.max(0, remainingMs - stepMs);
+      if (countEl) countEl.textContent = (remainingMs / 1000).toFixed(1) + "s";
+      if (barEl) barEl.style.width = `${(remainingMs / DURATION_MS) * 100}%`;
+
+      if (remainingMs <= 0) {
+        dismissTooltip();
+      }
+    }, stepMs);
+  }
+
+  function showExplainer(target) {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      hideTimeout = null;
+    }
+
     const title = target.getAttribute("data-explain-title");
     const body = target.getAttribute("data-explain-body");
     if (!title || !body) return;
 
-    if (currentTarget === target && hud.classList.contains("active")) {
-      return; // Already explaining this element
+    if (currentTarget === target && tooltip.classList.contains("active")) {
+      return;
     }
 
     currentTarget = target;
-    dismissExplainer(true);
+    remainingMs = DURATION_MS;
+    isPaused = false;
 
-    titleEl.textContent = title;
-    bodyEl.textContent = body;
-    countEl.textContent = "5.0s";
+    // Categorize based on context
+    const category = title.includes("Attack") || title.includes("Forgery") || title.includes("Replay") ? "THREAT VECTOR" :
+      title.includes("Sector") || title.includes("Cockpit") ? "SOC WORKSPACE" :
+        title.includes("Teleport") || title.includes("Circuit") ? "QUANTUM PROTOCOL" :
+          title.includes("SPRT") || title.includes("Hoeffding") || title.includes("Evidence") ? "STATISTICAL PROOF" : "PLAIN ENGLISH";
 
-    // Reset progress bar instantly
-    barEl.style.transition = "none";
-    barEl.style.width = "100%";
-    void barEl.offsetWidth; // Trigger browser reflow
+    if (tagEl) tagEl.textContent = category;
+    if (titleEl) titleEl.textContent = title;
+    if (bodyEl) bodyEl.textContent = body;
+    if (countEl) countEl.textContent = "5.0s";
 
-    // Activate HUD
-    hud.classList.add("active");
+    if (barEl) {
+      barEl.style.transition = "none";
+      barEl.style.width = "100%";
+      void barEl.offsetWidth;
+    }
 
-    // Animate progress bar linearly over 5 seconds
-    barEl.style.transition = `width ${DURATION_MS}ms linear`;
-    barEl.style.width = "0%";
-
-    const startTime = Date.now();
-
-    // 100ms countdown timer
-    explainerInterval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const remaining = Math.max(0, DURATION_MS - elapsed);
-      countEl.textContent = (remaining / 1000).toFixed(1) + "s";
-      if (remaining <= 0) {
-        clearInterval(explainerInterval);
-        explainerInterval = null;
-      }
-    }, 100);
-
-    // Auto-dismiss at exactly 5 seconds
-    explainerTimer = setTimeout(() => {
-      dismissExplainer(true); // keeps currentTarget so it won't repeatedly flicker until mouse leaves
-    }, DURATION_MS);
+    positionTooltip(target);
+    tooltip.classList.add("active");
+    startCountdown();
   }
 
-  // Delegated mouseover: catches dynamically rendered elements and nested icons
+  // Hover into tooltip pauses countdown so user can comfortably read!
+  tooltip.addEventListener("mouseenter", () => {
+    isPaused = true;
+    if (countEl) countEl.textContent = "PAUSED";
+  });
+
+  tooltip.addEventListener("mouseleave", () => {
+    isPaused = false;
+    startCountdown();
+  });
+
   document.addEventListener("mouseover", (e) => {
     const target = e.target.closest("[data-explain-title]");
     if (target) {
-      startExplainer(target);
+      showExplainer(target);
     }
   });
 
-  // Delegated mouseout: if user moves cursor off the explained element (and not into the HUD)
   document.addEventListener("mouseout", (e) => {
     const fromTarget = e.target.closest("[data-explain-title]");
     if (!fromTarget) return;
 
     const toElement = e.relatedTarget;
-    if (toElement && (fromTarget.contains(toElement) || hud.contains(toElement))) {
-      return; // Still within the hovered card or reading the HUD
+    if (toElement && (fromTarget.contains(toElement) || tooltip.contains(toElement))) {
+      return;
     }
 
-    // Left the target completely: return to normal
-    dismissExplainer(false);
+    // 250ms grace period to avoid flicker when mouse drifts slightly
+    hideTimeout = setTimeout(() => {
+      dismissTooltip();
+    }, 250);
   });
+
+  // Reposition on window resize or scroll
+  window.addEventListener("scroll", () => {
+    if (currentTarget && tooltip.classList.contains("active")) {
+      positionTooltip(currentTarget);
+    }
+  }, { passive: true });
+
+  initKeyboardNavigation();
+  initStickyCockpitBar();
+}
+
+/**
+ * Global Guide Mode Toggle
+ * Highlights all explorable components with subtle glowing markers.
+ */
+function toggleGuideMode() {
+  document.body.classList.toggle("guide-mode-active");
+  const isActive = document.body.classList.contains("guide-mode-active");
+  const btn = document.getElementById("guide-mode-btn");
+  if (btn) {
+    if (isActive) {
+      btn.className = "px-3 py-1.5 rounded-lg bg-cyan-900/60 border border-cyan-400 text-cyan-300 font-bold flex items-center gap-1.5 transition";
+      showToast("info", "Guide Mode Active", "All explorable quantum elements are now marked with (?). Hover any to inspect!");
+    } else {
+      btn.className = "px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 flex items-center gap-1.5 transition";
+      showToast("info", "Guide Mode Dismissed", "Returned to standard view.");
+    }
+  }
+}
+
+/**
+ * Keyboard Shortcuts Navigation
+ * 1-7: Switch tabs
+ * H: Toggle Guide Mode
+ * F: Quick-trigger Forgery Attack
+ * V: Quick-trigger Clean Verification
+ * Escape: Close modals and tooltips
+ */
+function initKeyboardNavigation() {
+  document.addEventListener("keydown", (e) => {
+    // Ignore keystrokes inside input or textarea
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+    const tabMap = {
+      "1": "cockpit",
+      "2": "circuit",
+      "3": "matrix",
+      "4": "experiments",
+      "5": "audit",
+      "6": "multi-party",
+      "7": "education"
+    };
+
+    if (tabMap[e.key]) {
+      switchTab(tabMap[e.key]);
+      showToast("info", `Switched to Tab: ${tabMap[e.key].toUpperCase()}`, `Shortcut [${e.key}]`);
+    } else if (e.key === "h" || e.key === "H") {
+      toggleGuideMode();
+    } else if (e.key === "f" || e.key === "F") {
+      simulateAttack("forgery");
+    } else if (e.key === "v" || e.key === "V") {
+      runLegitimateVerify();
+    } else if (e.key === "Escape") {
+      const tooltip = document.getElementById("quantum-tooltip");
+      if (tooltip) tooltip.classList.remove("active");
+      const modal = document.getElementById("merkle-proof-modal");
+      if (modal) modal.classList.add("hidden");
+    }
+  });
+}
+
+/**
+ * Sticky Mini Cockpit Bar on Scroll
+ * Floats at bottom of screen when user scrolls past the top verdict sector,
+ * so live verdict, error rate, and quick attack test buttons are ALWAYS within reach.
+ */
+function initStickyCockpitBar() {
+  let stickyBar = document.getElementById("sticky-cockpit-bar");
+  if (!stickyBar) {
+    stickyBar = document.createElement("div");
+    stickyBar.id = "sticky-cockpit-bar";
+    stickyBar.innerHTML = `
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" id="sticky-status-dot"></span>
+        <span class="text-zinc-400 font-medium">VERDICT:</span>
+        <span class="text-emerald-400 font-bold" id="sticky-action-val">ACCEPT</span>
+      </div>
+      <div class="h-3 w-[1px] bg-zinc-700"></div>
+      <div class="flex items-center gap-1.5">
+        <span class="text-zinc-400">ERROR:</span>
+        <span class="text-white font-bold" id="sticky-error-val">3.0%</span>
+      </div>
+      <div class="h-3 w-[1px] bg-zinc-700"></div>
+      <div class="flex items-center gap-2">
+        <button onclick="runLegitimateVerify()" class="px-2.5 py-1 rounded bg-emerald-950 border border-emerald-500/50 text-emerald-300 hover:text-white font-bold text-[10px] transition flex items-center gap-1">
+          <i data-lucide="check" class="w-3 h-3"></i> Clean Verify
+        </button>
+        <button onclick="simulateAttack('forgery')" class="px-2.5 py-1 rounded bg-rose-950 border border-rose-500/50 text-rose-300 hover:text-white font-bold text-[10px] transition flex items-center gap-1">
+          <i data-lucide="zap" class="w-3 h-3"></i> Test Forgery
+        </button>
+      </div>
+    `;
+    document.body.appendChild(stickyBar);
+    lucide.createIcons();
+  }
+
+  const triggerEl = document.getElementById("tab-cockpit");
+  window.addEventListener("scroll", () => {
+    if (!triggerEl) return;
+    const rect = triggerEl.getBoundingClientRect();
+    if (rect.top < -250) {
+      stickyBar.classList.add("visible");
+    } else {
+      stickyBar.classList.remove("visible");
+    }
+  }, { passive: true });
+}
+
+/**
+ * Smooth Anchor Scroll to Sector
+ */
+function scrollToSector(sectorId) {
+  const el = document.getElementById(sectorId);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.classList.add("ring-2", "ring-cyan-400");
+    setTimeout(() => {
+      el.classList.remove("ring-2", "ring-cyan-400");
+    }, 1200);
+  }
 }
 

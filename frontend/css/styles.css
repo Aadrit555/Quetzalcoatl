@@ -1,20 +1,36 @@
-/* QUETZALCOATL - Minimal, Refined Dark Obsidian Stylesheet */
+/* QUETZALCOATL - Minimalist Matte Zinc & Obsidian Studio Theme */
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --bg-primary: #090d16;
-  --bg-secondary: #0f172a;
-  --bg-card: #111827;
-  --bg-card-subtle: #161f33;
-  --border-card: rgba(255, 255, 255, 0.08);
-  --border-card-hover: rgba(99, 102, 241, 0.35);
+  --bg-primary: #09090b;
+  /* Deepest Matte Zinc */
+  --bg-secondary: #121215;
+  /* Raised Header & Panels */
+  --bg-card: #18181b;
+  /* Sector & Card Surface */
+  --bg-card-subtle: #202024;
+  /* Inner Containers */
+  --bg-card-hover: #27272a;
 
-  --accent-primary: #6366f1;
-  /* Indigo */
+  --border-card: rgba(255, 255, 255, 0.08);
+  --border-card-hover: rgba(255, 255, 255, 0.18);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+
+  /* Functional Accents */
   --accent-cyan: #06b6d4;
+  /* Quantum Core */
   --accent-emerald: #10b981;
+  /* Valid / Accept */
   --accent-amber: #f59e0b;
-  --accent-crimson: #ef4444;
+  /* Noise / Alert */
+  --accent-crimson: #f43f5e;
+  /* Breach / Block */
+  --accent-purple: #a855f7;
+  /* Teleportation & Math */
 }
 
 * {
@@ -24,23 +40,33 @@
 body {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-primary);
-  color: #f1f5f9;
+  color: var(--text-primary);
   overflow-x: hidden;
   margin: 0;
   padding: 0;
+  line-height: 1.5;
 }
 
 .mono {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Minimal Sector Cards */
+/* Dynamic Mode Filtering */
+body.mode-simple .expert-only {
+  display: none !important;
+}
+
+body.mode-expert .simple-only {
+  display: none !important;
+}
+
+/* Minimal Sector Containers */
 .sector-card {
   background: var(--bg-card);
   border: 1px solid var(--border-card);
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -54,7 +80,7 @@ body {
   justify-content: space-between;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .sector-tag {
@@ -64,20 +90,20 @@ body {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   padding: 3px 8px;
   border-radius: 6px;
-  background: rgba(99, 102, 241, 0.12);
-  color: #818cf8;
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e4e4e7;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Glass Panels */
+/* Glass & Card Panels */
 .glass-panel {
   background: var(--bg-card);
   border: 1px solid var(--border-card);
-  border-radius: 14px;
+  border-radius: 12px;
   transition: all 0.2s ease;
 }
 
@@ -87,94 +113,343 @@ body {
 
 /* Minimal Action Badges */
 .badge-accept {
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.35);
   color: #34d399;
 }
 
 .badge-alert {
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.35);
   color: #fbbf24;
 }
 
 .badge-block {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #f87171;
+  background: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  color: #fb7185;
+}
+
+/* Mode Switcher Segmented Control */
+.mode-switcher {
+  display: inline-flex;
+  align-items: center;
+  background: #141417;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.mode-btn {
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 9999px;
+  color: #a1a1aa;
+  transition: all 0.2s ease;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mode-btn:hover {
+  color: #fafafa;
+}
+
+.mode-btn.active {
+  background: #27272a;
+  color: #fafafa;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
 /* Navigation Tabs */
 .tab-btn {
   transition: all 0.15s ease;
   font-weight: 600;
-  color: #94a3b8;
+  color: #a1a1aa;
   background: transparent;
   border: 1px solid transparent;
+  border-radius: 8px;
 }
 
 .tab-btn:hover {
-  color: #f8fafc;
+  color: #fafafa;
   background: rgba(255, 255, 255, 0.04);
 }
 
 .tab-btn.active {
-  background: rgba(99, 102, 241, 0.15);
-  color: #a5b4fc;
-  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fafafa;
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
-/* 5-SECOND HOVER EXPLAINER HUD */
-#explainer-hud {
+/* Interactive Document Signer Inputs */
+.signer-input {
+  background: #09090b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: #fafafa;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  width: 100%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.signer-input:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.4);
+}
+
+/* Toast Notification Container */
+.toast-container {
   position: fixed;
-  bottom: 24px;
+  top: 24px;
   right: 24px;
-  max-width: 380px;
-  width: calc(100vw - 48px);
-  background: #1e293b;
-  border: 1px solid rgba(129, 140, 248, 0.4);
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.05);
-  z-index: 9999;
-  opacity: 0;
-  transform: translateY(12px) scale(0.98);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-#explainer-hud.active {
+.toast-item {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 12px 16px;
+  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.8);
+  color: #fafafa;
+  font-size: 12px;
+  min-width: 280px;
+  max-width: 420px;
+  animation: toastSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.toast-item.toast-success {
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.toast-item.toast-danger {
+  border-color: rgba(244, 63, 94, 0.4);
+}
+
+.toast-item.toast-warning {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.toast-item.toast-info {
+  border-color: rgba(6, 182, 212, 0.4);
+}
+
+/* FLOATING CONTEXTUAL TOOLTIP (SMART POPPER) */
+#quantum-tooltip {
+  position: fixed;
+  z-index: 100000;
+  max-width: 340px;
+  min-width: 220px;
+  background: rgba(18, 18, 23, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.85), 0 0 1px 1px rgba(6, 182, 212, 0.2);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px) scale(0.96);
+  transition: opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1), transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#quantum-tooltip.active {
   opacity: 1;
   transform: translateY(0) scale(1);
   pointer-events: auto;
 }
 
-.explainer-timer-track {
-  width: 100%;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
-  overflow: hidden;
-  margin-top: 10px;
+#quantum-tooltip.interactive:hover {
+  border-color: rgba(34, 211, 238, 0.6);
+  box-shadow: 0 20px 40px -4px rgba(0, 0, 0, 0.9), 0 0 16px rgba(6, 182, 212, 0.25);
 }
 
-.explainer-timer-bar {
+.tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.tooltip-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(6, 182, 212, 0.15);
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.tooltip-title {
+  font-weight: 700;
+  font-size: 12px;
+  color: #ffffff;
+  line-height: 1.3;
+}
+
+.tooltip-body {
+  font-size: 11px;
+  color: #d4d4d8;
+  line-height: 1.45;
+}
+
+.tooltip-timer-track {
+  width: 100%;
+  height: 2.5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.tooltip-timer-bar {
   height: 100%;
   width: 100%;
-  background: linear-gradient(90deg, #6366f1, #38bdf8);
+  background: linear-gradient(90deg, #06b6d4, #10b981);
   transform-origin: left;
 }
 
-/* Hoverable Target Indication */
+/* Hoverable Targets - Clean Subtle Glow instead of dashed line */
 [data-explain-title] {
   cursor: help;
   position: relative;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 [data-explain-title]:hover {
-  outline: 1px dashed rgba(99, 102, 241, 0.45);
-  outline-offset: 2px;
-  border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.4), 0 4px 16px -2px rgba(6, 182, 212, 0.15) !important;
+}
+
+/* Guide Mode Highlighting */
+body.guide-mode-active [data-explain-title] {
+  box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.3);
+  position: relative;
+}
+
+body.guide-mode-active [data-explain-title]::after {
+  content: "?";
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 15px;
+  height: 15px;
+  background: #06b6d4;
+  color: #000;
+  font-size: 9px;
+  font-weight: 900;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 6px rgba(6, 182, 212, 0.8);
+  pointer-events: none;
+  animation: pulseGuide 1.8s infinite;
+}
+
+@keyframes pulseGuide {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* Quick Navigation Anchor Bar */
+.quick-nav-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0;
+}
+
+.quick-nav-pill {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #a1a1aa;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.quick-nav-pill:hover,
+.quick-nav-pill.active {
+  background: rgba(6, 182, 212, 0.12);
+  border-color: rgba(6, 182, 212, 0.35);
+  color: #22d3ee;
+}
+
+/* Sticky Mini Telemetry Cockpit Bar */
+#sticky-cockpit-bar {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(120%);
+  z-index: 9999;
+  background: rgba(15, 15, 18, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9999px;
+  padding: 6px 18px;
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.85), 0 0 1px 1px rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#sticky-cockpit-bar.visible {
+  transform: translateX(-50%) translateY(0);
 }
 
 /* Custom Minimal Scrollbars */
@@ -184,16 +459,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #090d16;
+  background: #09090b;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #27272a;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #3f3f46;
 }
 
 /* Gauge Animation */
