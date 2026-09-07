@@ -47,6 +47,32 @@ body {
   line-height: 1.5;
 }
 
+/* Ambient WebGL Dither Background (ReactBits Inspired) */
+#dither-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.38;
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Ensure UI layers sit cleanly above canvas */
+header,
+nav,
+main,
+footer,
+#app-root,
+.quick-nav-bar,
+.sticky-cockpit-bar,
+#quantum-tooltip {
+  position: relative;
+  z-index: 1;
+}
+
 .mono {
   font-family: 'JetBrains Mono', monospace;
 }
@@ -63,6 +89,9 @@ body.mode-expert .simple-only {
 /* Minimal Sector Containers */
 .sector-card {
   background: var(--bg-card);
+  background: rgba(24, 24, 27, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-card);
   border-radius: 14px;
   padding: 22px;

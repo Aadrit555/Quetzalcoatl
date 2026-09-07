@@ -456,16 +456,19 @@ function renderDecisionData(data) {
       if (aBadge) aBadge.className = "px-5 py-3 rounded-lg text-2xl font-black tracking-wider mono text-center badge-block";
       if (tBadge) tBadge.className = "text-xs mono text-rose-400 font-bold";
       if (summary) summary.innerText = "CRITICAL THREAT: Signature aborted. Wave function collapsed or credential fraud.";
+      if (window.QuantumDither) window.QuantumDither.setThreatMode(true);
     } else if (classification.action === "ALERT") {
       circle.style.stroke = "#f59e0b";
       if (aBadge) aBadge.className = "px-5 py-3 rounded-lg text-2xl font-black tracking-wider mono text-center badge-alert";
       if (tBadge) tBadge.className = "text-xs mono text-amber-400 font-bold";
       if (summary) summary.innerText = "SUSPICIOUS CHANNEL: Quantum optical disturbance exceeded sv; recalibration advised.";
+      if (window.QuantumDither) window.QuantumDither.setThreatMode(true);
     } else {
       circle.style.stroke = "#10b981";
       if (aBadge) aBadge.className = "px-5 py-3 rounded-lg text-2xl font-black tracking-wider mono text-center badge-accept";
       if (tBadge) tBadge.className = "text-xs mono text-emerald-400 font-bold";
       if (summary) summary.innerText = "VERIFIED: Quantum states undisturbed. Information-theoretic authenticity validated.";
+      if (window.QuantumDither) window.QuantumDither.setThreatMode(false);
     }
   }
 

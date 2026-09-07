@@ -13,6 +13,9 @@
 
 <body class="mode-simple min-h-screen text-zinc-100 flex flex-col justify-between">
 
+  <!-- Ambient WebGL Dither Background (ReactBits Inspired) -->
+  <canvas id="dither-canvas"></canvas>
+
   <!-- Floating Toast Notifications Container -->
   <div id="toast-container" class="toast-container"></div>
 
@@ -66,6 +69,15 @@
         <i data-lucide="help-circle" class="w-3.5 h-3.5 text-cyan-400"></i>
         <span class="hidden sm:inline">Guide Mode</span>
         <span class="text-[10px] text-zinc-500 mono">[H]</span>
+      </button>
+      <button onclick="if(window.QuantumDither) window.QuantumDither.cyclePreset()" id="btn-toggle-dither"
+        data-explain-title="Quantum Dither Ambient Background"
+        data-explain-body="Toggle or cycle through retro-cyber 8x8 Bayer Matrix Dither wave themes (inspired by ReactBits). Keyboard hotkey: [D]."
+        class="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-cyan-500/40 text-cyan-400 flex items-center gap-1.5 transition"
+        title="Cycle / Toggle Dither Background (Key: D)">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
+        <span class="dither-label hidden sm:inline">Dither: ON</span>
+        <span class="text-[10px] text-zinc-500 mono">[D]</span>
       </button>
       <button onclick="exportAuditReport()" data-explain-title="Export Forensic Audit Report"
         data-explain-body="Downloads the active session's cryptographic Merkle proof, p-value evidence, and session hash as a JSON report."
@@ -1168,6 +1180,7 @@
     <span class="mono">Bennett Teleportation • Exact Binomial Hypothesis Testing • Merkle Hash Chain</span>
   </footer>
 
+  <script src="/static/js/dither.js"></script>
   <script src="/static/js/app.js"></script>
 </body>
 

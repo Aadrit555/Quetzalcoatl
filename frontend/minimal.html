@@ -198,10 +198,36 @@
     [data-explain-title]:hover {
       box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.4) !important;
     }
+
+    /* Ambient WebGL Dither Background */
+    #dither-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.35;
+      transition: opacity 0.5s ease;
+    }
+
+    header,
+    main,
+    nav,
+    footer,
+    .view-container,
+    #quantum-tooltip {
+      position: relative;
+      z-index: 1;
+    }
   </style>
 </head>
 
 <body class="bg-background text-on-surface flex flex-col min-h-screen selection:bg-primary/20 selection:text-white">
+
+  <!-- Ambient WebGL Dither Background (ReactBits Inspired) -->
+  <canvas id="dither-canvas"></canvas>
 
   <!-- Minimal Dynamic Executive Header -->
   <header class="fixed top-0 w-full z-50 pt-safe bg-background/85 backdrop-blur-xl border-b border-outline">
@@ -1782,6 +1808,7 @@
       initHoverExplainerEngine();
     });
   </script>
+  <script src="/static/js/dither.js"></script>
 </body>
 
 </html>
