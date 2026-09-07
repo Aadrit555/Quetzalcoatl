@@ -62,10 +62,10 @@ def test_http(tmp_path):
         assert tts_voices_res.status_code == 200
         assert len(tts_voices_res.json()['voices']) >= 5
 
-        # Verify fallback response when no API key provided
+        # Verify fallback response when key is missing, invalid, or exhausted
         tts_synth_res = httpx.post(f'http://127.0.0.1:{port}/api/tts', json={'text': 'Test voice'})
-        assert tts_synth_res.status_code in [200, 401]
-        if tts_synth_res.status_code == 401:
+        assert tts_synth_res.status_code in [200, 400, 401, 429]
+        if tts_synth_res.status_code != 200:
             assert tts_synth_res.json().get('fallback') is True
     finally:
         server.should_exit=True;thread.join(5);sock.close()

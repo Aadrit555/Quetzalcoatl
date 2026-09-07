@@ -257,24 +257,29 @@ def create_app(verifier: VerificationEngine, chsh_receipts: dict[str,list[tuple[
             mapped_kind = 'forgery'
             chsh_noise = 0.35
             strength = 1.0
+            exposure = 0.85
         elif attack_type in ['channel_manipulation', 'channel_noise']:
             mapped_kind = 'channel_manipulation'
             chsh_noise = 0.145
             strength = 0.5
+            exposure = 0.25
         elif attack_type == 'replay':
             mapped_kind = 'replay'
             chsh_noise = 0.02
             strength = 1.0
+            exposure = 0.25
         elif attack_type == 'impersonation':
             mapped_kind = 'impersonation'
             chsh_noise = 0.02
             strength = 1.0
+            exposure = 0.25
         else:
             mapped_kind = 'individual'
             chsh_noise = 0.30
             strength = 0.8
+            exposure = 0.5
 
-        scenario = run_scenario(kind=mapped_kind, strength=strength, exposure=0.25, seed=seed, n=256)
+        scenario = run_scenario(kind=mapped_kind, strength=strength, exposure=exposure, seed=seed, n=256)
         chsh = sample_chsh(2048, chsh_noise, seed + 4)
         stats = inspect(scenario.records, chsh, scenario.integrity, p0, p1)
         attr = attribute(stats)
@@ -606,8 +611,8 @@ def create_app(verifier: VerificationEngine, chsh_receipts: dict[str,list[tuple[
             "provider": "elevenlabs",
             "available": has_key,
             "has_key": has_key,
-            "default_voice_id": "21m00Tcm4TlvDq8ikWAM",
-            "default_voice_name": "Rachel (Agent Q)",
+            "default_voice_id": "pNInz6obpgDQGcFmaJgB",
+            "default_voice_name": "Adam (Deep SOC Narrator)",
             "model_id": "eleven_turbo_v2_5",
             "cached_audio_count": len(list(cache_dir.glob("*.mp3"))),
             "fallback_provider": "webspeech"
@@ -618,7 +623,7 @@ def create_app(verifier: VerificationEngine, chsh_receipts: dict[str,list[tuple[
         """Return curated list of high-quality ElevenLabs voices."""
         return {
             "voices": CURATED_ELEVEN_VOICES,
-            "default_voice_id": "21m00Tcm4TlvDq8ikWAM"
+            "default_voice_id": "pNInz6obpgDQGcFmaJgB"
         }
 
     @app.post('/api/tts', response_model=None)
