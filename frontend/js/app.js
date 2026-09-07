@@ -1041,6 +1041,9 @@ function initKeyboardNavigation() {
     // Ignore keystrokes inside input or textarea
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
 
+    // Suppress cockpit hotkeys when Tour Bot is actively running (Tour Bot manages V, Space, Esc, etc.)
+    if (window.QuetzalcoatlTour && window.QuetzalcoatlTour.isActive) return;
+
     const tabMap = {
       "1": "cockpit",
       "2": "circuit",

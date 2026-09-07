@@ -13,13 +13,147 @@
       this.currentStep = 0;
       this.isAutoPlaying = true; // Auto-play by default as requested
       this.isMuted = localStorage.getItem("qds_tour_muted") === "true";
-      this.stepDuration = 6500; // 6.5 seconds per step for comfortable reading
+      this.voiceEnabled = localStorage.getItem("qds_tour_voice") !== "false"; // Spoken vocal voice enabled by default!
+      this.stepDuration = 6500; // Baseline duration
       this.timerStart = 0;
       this.animFrameId = null;
       this.audioCtx = null;
+      this.selectedVoice = null;
+      this.isSpeaking = false;
+      this.speechTimeoutId = null;
+      this.currentUtterance = null;
 
+      this.initVoices();
       this.initDom();
       this.bindEvents();
+    }
+
+    // Voice Synthesizer via Native Web Speech API (Speaks out loud through speakers!)
+    initVoices() {
+      if (!('speechSynthesis' in window)) return;
+      const selectBestVoice = () => {
+        const voices = window.speechSynthesis.getVoices();
+        if (!voices || !voices.length) return;
+        const natural = voices.find(v => v.lang && v.lang.startsWith("en") && (
+          v.name.includes("Natural") ||
+          v.name.includes("Google US English") ||
+          v.name.includes("Neural") ||
+          v.name.includes("Jenny") ||
+          v.name.includes("Guy") ||
+          v.name.includes("Aria") ||
+          v.name.includes("Daniel") ||
+          v.name.includes("Samantha")
+        ));
+        this.selectedVoice = natural || voices.find(v => v.lang && v.lang.startsWith("en")) || voices[0];
+      };
+
+      selectBestVoice();
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = selectBestVoice;
+      }
+    }
+
+    speakStep(text) {
+      this.stopSpeaking();
+      if (!this.voiceEnabled || !('speechSynthesis' in window)) return;
+
+      try {
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.rate = 1.02; // crisp, comfortable speaking pace
+        utter.pitch = 1.0;
+        if (this.selectedVoice) utter.voice = this.selectedVoice;
+
+        utter.onstart = () => {
+          this.isSpeaking = true;
+          this.updateSpeakingWave(true);
+        };
+
+        utter.onend = () => {
+          this.isSpeaking = false;
+          this.updateSpeakingWave(false);
+          // If auto-play is active, advance after a short comfortable pause
+          if (this.isAutoPlaying && this.isActive) {
+            this.speechTimeoutId = setTimeout(() => {
+              const steps = this.getSteps();
+              if (this.currentStep < steps.length - 1) {
+                this.next();
+              } else {
+                this.stop();
+              }
+            }, 1100);
+          }
+        };
+
+        utter.onerror = (e) => {
+          this.isSpeaking = false;
+          this.updateSpeakingWave(false);
+        };
+
+        this.currentUtterance = utter;
+        window.speechSynthesis.speak(utter);
+      } catch (err) {
+        console.warn("Speech synthesis error:", err);
+      }
+    }
+
+    stopSpeaking() {
+      if (this.speechTimeoutId) {
+        clearTimeout(this.speechTimeoutId);
+        this.speechTimeoutId = null;
+      }
+      if ('speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+        } catch (e) {}
+      }
+      this.isSpeaking = false;
+      this.currentUtterance = null;
+      this.updateSpeakingWave(false);
+    }
+
+    updateSpeakingWave(isSpeaking) {
+      const wave = document.getElementById("tour-voice-wave");
+      if (wave) {
+        if (isSpeaking) {
+          wave.classList.remove("hidden");
+        } else {
+          wave.classList.add("hidden");
+        }
+      }
+    }
+
+    toggleVoice() {
+      this.voiceEnabled = !this.voiceEnabled;
+      localStorage.setItem("qds_tour_voice", this.voiceEnabled.toString());
+      this.updateVoiceUi();
+
+      if (this.voiceEnabled) {
+        const steps = this.getSteps();
+        const step = steps[this.currentStep];
+        if (step && this.isActive) {
+          this.speakStep(step.speech);
+          if (this.isAutoPlaying) this.startCountdownTimer();
+        }
+      } else {
+        this.stopSpeaking();
+      }
+    }
+
+    updateVoiceUi() {
+      const btn = document.getElementById("tour-btn-voice");
+      const icon = document.getElementById("tour-voice-icon");
+      if (btn) {
+        if (this.voiceEnabled) {
+          btn.classList.add("tour-voice-on");
+          btn.title = "Spoken Voice: ON (Click to mute voice) [V]";
+        } else {
+          btn.classList.remove("tour-voice-on");
+          btn.title = "Spoken Voice: OFF (Click to unmute voice) [V]";
+        }
+      }
+      if (icon) {
+        icon.textContent = this.voiceEnabled ? "🎙️" : "🔇";
+      }
     }
 
     // Sound Synthesizer via Web Audio API (Native zero-asset sound effects)
@@ -113,12 +247,18 @@
                 <div class="flex items-center gap-2">
                   <span class="tour-bot-name">AGENT Q</span>
                   <span class="tour-auto-indicator" id="tour-auto-status">AUTOMATED TOUR</span>
+                  <div class="tour-voice-wave hidden" id="tour-voice-wave" title="Speaking out loud">
+                    <span></span><span></span><span></span><span></span>
+                  </div>
                 </div>
                 <div class="tour-step-badge" id="tour-step-indicator">STEP 1 OF 16</div>
               </div>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
-              <button id="tour-btn-mute" class="tour-icon-btn" title="Toggle Sound [M]">
+              <button id="tour-btn-voice" class="tour-icon-btn ${this.voiceEnabled ? 'tour-voice-on' : ''}" title="Toggle Spoken Voice [V]">
+                <span id="tour-voice-icon">${this.voiceEnabled ? '🎙️' : '🔇'}</span>
+              </button>
+              <button id="tour-btn-mute" class="tour-icon-btn" title="Toggle Sound FX [M]">
                 <span id="tour-mute-icon">${this.isMuted ? '🔇' : '🔊'}</span>
               </button>
               <button id="tour-btn-close" class="tour-icon-btn" title="Exit Tour [Esc]">✕</button>
@@ -169,8 +309,8 @@
           <!-- Card Footer & Controls -->
           <div class="tour-dialog-footer">
             <div class="tour-key-hints mono">
-              <span class="hidden sm:inline">Keys: [← / →] [Space: Pause] [T: Toggle]</span>
-              <span class="sm:hidden">[← / →]</span>
+              <span class="hidden sm:inline">Keys: [← / →] [Space: Pause] [V: Voice] [T: Bot]</span>
+              <span class="sm:hidden">[← / →] [V]</span>
             </div>
             <div class="flex items-center gap-2">
               <button id="tour-btn-prev" class="tour-btn tour-btn-secondary" title="Previous Step [←]">◂ Prev</button>
@@ -493,12 +633,11 @@
       document.getElementById("tour-btn-close")?.addEventListener("click", () => this.stop());
       document.getElementById("tour-btn-next")?.addEventListener("click", () => {
         this.next();
-        if (this.isAutoPlaying) this.startCountdownTimer();
       });
       document.getElementById("tour-btn-prev")?.addEventListener("click", () => {
         this.prev();
-        if (this.isAutoPlaying) this.startCountdownTimer();
       });
+      document.getElementById("tour-btn-voice")?.addEventListener("click", () => this.toggleVoice());
       document.getElementById("tour-btn-mute")?.addEventListener("click", () => this.toggleMute());
       document.getElementById("tour-btn-autoplay")?.addEventListener("click", () => this.toggleAutoPlay());
 
@@ -516,17 +655,18 @@
         if (e.key === "ArrowRight" || e.key === "Enter") {
           e.preventDefault();
           this.next();
-          if (this.isAutoPlaying) this.startCountdownTimer();
         } else if (e.key === "ArrowLeft") {
           e.preventDefault();
           this.prev();
-          if (this.isAutoPlaying) this.startCountdownTimer();
         } else if (e.key === "Escape") {
           e.preventDefault();
           this.stop();
         } else if (e.key === " " || e.key === "Spacebar") {
           e.preventDefault();
           this.toggleAutoPlay();
+        } else if (e.key === "v" || e.key === "V") {
+          e.preventDefault();
+          this.toggleVoice();
         } else if (e.key === "m" || e.key === "M") {
           e.preventDefault();
           this.toggleMute();
@@ -556,12 +696,14 @@
       if (tt) tt.classList.remove("active");
 
       this.soundNext();
+      this.updateVoiceUi();
       this.renderCurrentStep();
       this.startCountdownTimer();
     }
 
     stop() {
       this.isActive = false;
+      this.stopSpeaking();
       this.stopCountdownTimer();
 
       const root = document.getElementById("tour-bot-root");
@@ -584,11 +726,14 @@
     }
 
     next() {
+      this.stopSpeaking();
+      this.stopCountdownTimer();
       const steps = this.getSteps();
       if (this.currentStep < steps.length - 1) {
         this.currentStep++;
         this.soundNext();
         this.renderCurrentStep();
+        if (this.isAutoPlaying) this.startCountdownTimer();
       } else {
         // Tour completed
         this.stop();
@@ -599,10 +744,13 @@
     }
 
     prev() {
+      this.stopSpeaking();
+      this.stopCountdownTimer();
       if (this.currentStep > 0) {
         this.currentStep--;
         this.soundPrev();
         this.renderCurrentStep();
+        if (this.isAutoPlaying) this.startCountdownTimer();
       }
     }
 
@@ -618,10 +766,24 @@
       if (this.isAutoPlaying) {
         this.isAutoPlaying = false;
         this.stopCountdownTimer();
+        if (this.speechTimeoutId) {
+          clearTimeout(this.speechTimeoutId);
+          this.speechTimeoutId = null;
+        }
+        if (this.isSpeaking && 'speechSynthesis' in window) {
+          window.speechSynthesis.pause();
+        }
         this.updateAutoPlayUi(false);
       } else {
         this.isAutoPlaying = true;
         this.updateAutoPlayUi(true);
+        if ('speechSynthesis' in window && window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        } else if (!this.isSpeaking && this.voiceEnabled) {
+          const steps = this.getSteps();
+          const step = steps[this.currentStep];
+          if (step) this.speakStep(step.speech);
+        }
         this.startCountdownTimer();
       }
     }
@@ -643,13 +805,26 @@
         const val = document.getElementById("tour-countdown-val");
 
         if (bar) bar.style.width = `${pct}%`;
-        if (val) val.textContent = `${(remaining / 1000).toFixed(1)}s`;
+        if (val) {
+          if (this.isSpeaking) {
+            val.textContent = "Speaking...";
+          } else if (this.speechTimeoutId) {
+            val.textContent = "Advancing...";
+          } else {
+            val.textContent = `${(remaining / 1000).toFixed(1)}s`;
+          }
+        }
 
         if (elapsed >= this.stepDuration) {
+          // If Agent Q is currently speaking or queued to advance, let speech complete naturally
+          if (this.isSpeaking || this.speechTimeoutId) {
+            this.animFrameId = requestAnimationFrame(tick);
+            return;
+          }
+
           const steps = this.getSteps();
           if (this.currentStep < steps.length - 1) {
             this.next();
-            this.startCountdownTimer();
           } else {
             this.stop();
           }
@@ -765,6 +940,14 @@
 
       // 5. Position spotlight and dialog over target element
       this.positionOnTarget();
+
+      // 6. Speak out loud with realistic voice synthesis!
+      this.speakStep(step.speech);
+
+      // Dynamically match step duration to speech length
+      const words = (step.speech || "").split(/\s+/).filter(Boolean).length;
+      const dynamicSec = this.voiceEnabled ? Math.max(6.5, (words / 2.6) + 1.2) : 6.5;
+      this.stepDuration = dynamicSec * 1000;
     }
 
     positionOnTarget() {
