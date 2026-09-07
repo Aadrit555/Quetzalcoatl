@@ -1,7 +1,7 @@
 /**
- * QUETZALCOATL - Interactive Tutorial Walkthrough Bot (Agent Q)
- * Step-by-step conversational guide with spotlight highlight, auto-play,
- * audio telemetry chirps, and live scenario triggers.
+ * QUETZALCOATL - Autonomous Interactive Tutorial Walkthrough Bot (Agent Q)
+ * Hands-free automatic guided tour through all features, sectors, and labs
+ * with focus spotlight, countdown meter, synthesized audio, and live scenario triggers.
  */
 
 (function () {
@@ -11,19 +11,18 @@
     constructor() {
       this.isActive = false;
       this.currentStep = 0;
-      this.autoPlayTimer = null;
-      this.isAutoPlaying = false;
+      this.isAutoPlaying = true; // Auto-play by default as requested
       this.isMuted = localStorage.getItem("qds_tour_muted") === "true";
-      this.autoPlayIntervalSeconds = 8;
-      this.autoPlayRemaining = this.autoPlayIntervalSeconds;
-      this.countdownInterval = null;
+      this.stepDuration = 6500; // 6.5 seconds per step for comfortable reading
+      this.timerStart = 0;
+      this.animFrameId = null;
       this.audioCtx = null;
 
       this.initDom();
       this.bindEvents();
     }
 
-    // Sound Synthesizer via Web Audio API (No external sound files required)
+    // Sound Synthesizer via Web Audio API (Native zero-asset sound effects)
     playTone(freqStart, freqEnd, duration, type = "sine") {
       if (this.isMuted) return;
       try {
@@ -52,12 +51,12 @@
         osc.start(now);
         osc.stop(now + duration);
       } catch (e) {
-        // AudioContext not permitted or blocked
+        // AudioContext blocked or not allowed
       }
     }
 
     soundNext() {
-      this.playTone(520, 880, 0.14, "sine");
+      this.playTone(540, 880, 0.12, "sine");
     }
 
     soundPrev() {
@@ -72,7 +71,7 @@
       this.playTone(400, 260, 0.16, "sine");
     }
 
-    // Build Tour Overlay and Bot Dialog in DOM
+    // Initialize DOM Overlay & Bot Speech Modal
     initDom() {
       if (document.getElementById("tour-bot-root")) return;
 
@@ -86,36 +85,39 @@
           <defs>
             <mask id="tour-spotlight-cutout">
               <rect x="0" y="0" width="100%" height="100%" fill="white" />
-              <rect id="tour-mask-hole" x="0" y="0" width="0" height="0" rx="10" ry="10" fill="black" />
+              <rect id="tour-mask-hole" x="0" y="0" width="0" height="0" rx="12" ry="12" fill="black" />
             </mask>
           </defs>
-          <rect x="0" y="0" width="100%" height="100%" fill="rgba(0, 0, 0, 0.78)" mask="url(#tour-spotlight-cutout)" />
+          <rect x="0" y="0" width="100%" height="100%" fill="rgba(0, 0, 0, 0.82)" mask="url(#tour-spotlight-cutout)" />
         </svg>
 
-        <!-- Focus Spotlight Frame (Positioned dynamically over target element) -->
+        <!-- Focus Spotlight Frame (Dynamically sits on active target) -->
         <div id="tour-focus-frame" class="tour-focus-frame">
           <div class="tour-corner top-left"></div>
           <div class="tour-corner top-right"></div>
           <div class="tour-corner bottom-left"></div>
           <div class="tour-corner bottom-right"></div>
-          <span id="tour-focus-label" class="tour-focus-label">TARGET IN FOCUS</span>
+          <span id="tour-focus-label" class="tour-focus-label">FOCUS TARGET</span>
         </div>
 
         <!-- Floating Conversational Bot Card -->
         <div id="tour-bot-dialog" class="tour-bot-dialog" role="dialog" aria-modal="true">
           <!-- Card Header -->
           <div class="tour-dialog-header">
-            <div class="flex items-center gap-2.5">
-              <div class="tour-avatar-pulse">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="tour-avatar-pulse shrink-0">
                 <span class="tour-bot-icon">🤖</span>
                 <span class="tour-live-dot"></span>
               </div>
-              <div>
-                <div class="tour-bot-name">AGENT Q // SOC ASSISTANT</div>
-                <div class="tour-step-badge" id="tour-step-indicator">STEP 1 OF 9</div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="tour-bot-name">AGENT Q</span>
+                  <span class="tour-auto-indicator" id="tour-auto-status">AUTOMATED TOUR</span>
+                </div>
+                <div class="tour-step-badge" id="tour-step-indicator">STEP 1 OF 16</div>
               </div>
             </div>
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1.5 shrink-0">
               <button id="tour-btn-mute" class="tour-icon-btn" title="Toggle Sound [M]">
                 <span id="tour-mute-icon">${this.isMuted ? '🔇' : '🔊'}</span>
               </button>
@@ -125,7 +127,16 @@
 
           <!-- Linear Step Progress Bar -->
           <div class="tour-progress-track">
-            <div id="tour-progress-bar" class="tour-progress-bar" style="width: 11%;"></div>
+            <div id="tour-progress-bar" class="tour-progress-bar" style="width: 6.25%;"></div>
+          </div>
+
+          <!-- Animated Auto-Play Countdown Meter -->
+          <div class="tour-countdown-wrapper flex items-center justify-between text-[10px] mono text-zinc-400 mb-2">
+            <span id="tour-countdown-text">Auto-Advancing: <b class="text-white" id="tour-countdown-val">6.5s</b></span>
+            <span class="text-zinc-500 hidden sm:inline">[Space: Pause]</span>
+          </div>
+          <div class="tour-countdown-track mb-3">
+            <div id="tour-countdown-bar" class="tour-countdown-bar" style="width: 100%;"></div>
           </div>
 
           <!-- Dialog Body -->
@@ -133,7 +144,7 @@
             <div class="tour-category-pill" id="tour-category-pill">SYSTEM ARCHITECTURE</div>
             <h3 class="tour-step-title" id="tour-step-title">Welcome to Quantum Teleportation SOC</h3>
             <p class="tour-speech-text" id="tour-speech-text">
-              Greetings, Operator! I am Agent Q, your quantum threat monitoring guide.
+              Greetings, Operator! I am Agent Q, your automated tour assistant. Sit back as I walk you through each component of our platform.
             </p>
 
             <!-- Technical Deep-Dive / SOC Callout Box -->
@@ -158,28 +169,25 @@
           <!-- Card Footer & Controls -->
           <div class="tour-dialog-footer">
             <div class="tour-key-hints mono">
-              <span class="hidden sm:inline">Keys: [← / →] [Space: Play] [T: Toggle]</span>
+              <span class="hidden sm:inline">Keys: [← / →] [Space: Pause] [T: Toggle]</span>
               <span class="sm:hidden">[← / →]</span>
             </div>
             <div class="flex items-center gap-2">
-              <button id="tour-btn-prev" class="tour-btn tour-btn-secondary">◂ Prev</button>
-              <button id="tour-btn-autoplay" class="tour-btn tour-btn-secondary" title="Auto-advance through tour">
-                <span id="tour-autoplay-icon">▶</span> <span id="tour-autoplay-label">Auto</span>
-                <span id="tour-autoplay-timer" class="text-[10px] opacity-70 ml-0.5"></span>
+              <button id="tour-btn-prev" class="tour-btn tour-btn-secondary" title="Previous Step [←]">◂ Prev</button>
+              <button id="tour-btn-autoplay" class="tour-btn tour-btn-secondary active" title="Toggle Auto-Play [Space]">
+                <span id="tour-autoplay-icon">⏸</span> <span id="tour-autoplay-label">Pause</span>
               </button>
-              <button id="tour-btn-next" class="tour-btn tour-btn-primary">Next ➔</button>
+              <button id="tour-btn-next" class="tour-btn tour-btn-primary" title="Next Step [→]">Next ➔</button>
             </div>
           </div>
         </div>
       `;
 
       document.body.appendChild(root);
-
-      // Add Tour Launch Floating Banner (if not already dismissed)
       this.renderQuickLaunchPrompt();
     }
 
-    // Quick launch prompt for first-time visitors
+    // Floating welcome prompt for first-time visitors
     renderQuickLaunchPrompt() {
       const dismissed = localStorage.getItem("qds_tour_prompt_dismissed");
       if (dismissed) return;
@@ -192,12 +200,12 @@
           <div class="text-xl">🤖</div>
           <div class="text-left">
             <div class="font-bold text-xs text-white">First time at Quetzalcoatl SOC?</div>
-            <div class="text-[11px] text-zinc-400">Take the 60-second interactive guided bot walkthrough.</div>
+            <div class="text-[11px] text-zinc-400">Take the autonomous, hands-free guided tour.</div>
           </div>
         </div>
         <div class="flex items-center gap-2 mt-2 sm:mt-0">
           <button id="prompt-btn-start" class="px-2.5 py-1 rounded bg-white text-black font-bold text-xs hover:bg-zinc-200 transition">
-            Start Walkthrough
+            Start Tour
           </button>
           <button id="prompt-btn-dismiss" class="p-1 text-zinc-500 hover:text-zinc-300 text-xs transition" title="Dismiss">
             ✕
@@ -218,37 +226,62 @@
       });
     }
 
-    // Step Definitions for Desktop Dashboard
+    // Comprehensive 16-Step Walkthrough for Desktop SOC
     getDesktopSteps() {
       return [
         {
-          id: "welcome",
+          id: "brand_posture",
+          tab: "cockpit",
           target: "header",
-          category: "MISSION BRIEFING",
-          title: "Welcome to Quetzalcoatl QDS SOC",
-          speech: "Greetings, Operator! I am Agent Q, your quantum SOC intelligence assistant. Quetzalcoatl is a post-quantum cyber defense platform that uses 3-qubit Bennett teleportation to authenticate high-stakes documents and protect critical national infrastructure.",
-          calloutTitle: "WHY QUANTUM SIGNATURES?",
-          calloutText: "Classical digital signatures (RSA, ECC) can be broken by Shor's algorithm on a quantum computer. QDS relies on fundamental laws of quantum physics: uncopyability and the No-Cloning theorem.",
+          category: "SYSTEM ARCHITECTURE",
+          title: "1. Brand & Post-Quantum SOC Posture",
+          speech: "Welcome to Quetzalcoatl! This is a state-of-the-art post-quantum Cyber Threat Detection SOC designed to interdict quantum forgery and eavesdropping on critical national infrastructure.",
+          calloutTitle: "INFORMATION-THEORETIC SECURITY",
+          calloutText: "Unlike classical signatures broken by Shor's algorithm, QDS relies on quantum mechanics: state measurements alter wave functions irreversibly (No-Cloning Theorem).",
           placement: "bottom"
         },
         {
-          id: "thresholds",
+          id: "session_telemetry",
+          tab: "cockpit",
           target: "#ribbon-session-id",
-          category: "SECURITY THRESHOLDS",
-          title: "Dual Quantum Security Thresholds",
-          speech: "Look at the telemetry ribbon above. Notice our dual thresholds: sv = 6.0% (verification tolerance for optical noise) and sa = 21.0% (security abort limit). Any eavesdropper trying to intercept or measure states creates irreducible errors that exceed sa.",
-          calloutTitle: "INFORMATION THEORETIC BOUND",
-          calloutText: "As proven by Gottesman-Chuang and Zeng-Christoph, when error rate e ≤ sv, probability of forgery is bounded by Hoeffding exponential decay P ≤ exp(-2N(sa-sv)²).",
+          category: "OPERATIONAL TELEMETRY",
+          title: "2. Live Session Freshness & Dual Thresholds",
+          speech: "Here is the active session identifier. In quantum key distribution, every signature sequence uses fresh, single-use Bell pairs. Notice our dual thresholds: sv = 6.0% (optical channel noise limit) and sa = 21.0% (security abort limit).",
+          calloutTitle: "DUAL THRESHOLD DERIVATION",
+          calloutText: "If quantum bit error rate e ≤ sv, signatures are verified authentic. If e > sa, the signature is aborted due to active eavesdropping.",
           placement: "bottom"
         },
         {
-          id: "verdict",
+          id: "merkle_root",
+          tab: "cockpit",
+          target: "#top-merkle-root",
+          category: "IMMUTABLE AUDIT",
+          title: "3. Blockchain-Anchored Merkle Root",
+          speech: "Every signature verdict is cryptographically hashed into an immutable Merkle tree. The top root hash shown here is anchored directly into an Ethereum smart contract for court-admissible audit proof.",
+          calloutTitle: "ZERO-TRUST VERIFICATION",
+          calloutText: "Any tampering with historical event logs invalidates the cryptographic root derivation immediately.",
+          placement: "bottom"
+        },
+        {
+          id: "mode_switcher",
+          tab: "cockpit",
+          target: ".mode-switcher",
+          category: "USER EXPERIENCE",
+          title: "4. Simple Mode vs SOC Analyst Mode",
+          speech: "Operators can toggle between Simple Mode (streamlined for executives and non-technical evaluators) and SOC Analyst Mode (unveiling deep mathematical formulas, Wald SPRT curves, and Hoeffding bounds).",
+          calloutTitle: "REAL-TIME ADAPTATION",
+          calloutText: "Clicking either mode instantly tailors the visual presentation without reloading data.",
+          placement: "bottom"
+        },
+        {
+          id: "verdict_card",
+          tab: "cockpit",
           target: "#sector-verdict",
-          category: "OPERATIONAL DEFENSE",
-          title: "Real-Time Executive Security Verdict",
-          speech: "This is Sector 01: The Verdict Cockpit. Here, the verification engine analyzes incoming Bell measurements against the registered quantum key. It delivers instantaneous verdicts: ACCEPT (authentic), ALERT (channel noise), or BLOCK (quantum attack interdicted).",
+          category: "REAL-TIME VERDICT",
+          title: "5. Sector 01: Executive Security Verdict Cockpit",
+          speech: "This is Sector 01: The Verdict Cockpit. Our verification engine compares incoming states against Alice's keys. When clean, the verdict is ACCEPT. Under attack, it triggers an uncompromising BLOCK.",
           calloutTitle: "ZERO TRUST BOUNDARY",
-          calloutText: "Fresh cryptographic nonces and sender identity certificates are verified alongside quantum bit error rates to prevent replay and impersonation.",
+          calloutText: "Fresh cryptographic nonces and sender identity certificates are verified alongside quantum error rates to prevent replay and impersonation.",
           actionLabel: "⚡ Simulate Quantum Forgery Interdiction",
           actionFn: () => {
             if (typeof window.simulateAttack === "function") window.simulateAttack('forgery');
@@ -257,20 +290,33 @@
         },
         {
           id: "gauge",
+          tab: "cockpit",
           target: "#error-rate-val",
           category: "QUANTUM METRICS",
-          title: "Quantum Mismatch Radial Gauge",
-          speech: "The center gauge displays the live Quantum Bit Error Rate (QBER). Under nominal conditions with normal optical fiber decoherence, errors stay around ~3%. If an attacker measures the quantum states, error spikes to ~34%, immediately collapsing the state.",
+          title: "6. Quantum Mismatch Radial Gauge (QBER)",
+          speech: "The radial gauge visualizes real-time Quantum Bit Error Rate (QBER). Under nominal conditions, errors remain below 4%. If an adversary tries to copy or measure the states, error spikes to ~34%, collapsing the state.",
           calloutTitle: "NO-CLONING COLLAPSE",
           calloutText: "Because quantum states cannot be cloned, an adversary's basis guess matches only 50% of the time, guaranteeing detectable disturbance on the remaining states.",
           placement: "left"
         },
         {
+          id: "instant_actions",
+          tab: "cockpit",
+          target: "#instant-actions-panel",
+          category: "OPERATOR TOOLS",
+          title: "7. Instant Operator Action Triggers",
+          speech: "These quick buttons allow operators to test authentic quantum signatures, simulate quantum forgery attacks, or initialize fresh session keys with a single click.",
+          calloutTitle: "FAST INTERACTION",
+          calloutText: "Dispatches simulated Bell state measurements through the verification engine and updates the live ledger.",
+          placement: "left"
+        },
+        {
           id: "missions",
+          tab: "cockpit",
           target: "#sector-missions",
           category: "SOCIAL IMPACT PROBLEM",
-          title: "National Mission Defense (Social Impact)",
-          speech: "Here is how our project solves real-world crises! Click between high-impact national missions: Emergency Pediatric Organ Dispatch (#HRT-2026), Regional SCADA Power Grid (#HV-7701), and $45M Flood Relief Sovereign Aid (#DBT-2026).",
+          title: "8. Sector 02: National Mission Defense (Social Problems)",
+          speech: "See how our project solves high-stakes real-world social problems! Explore 3 critical national missions: Emergency Pediatric Organ Dispatch, SCADA Power Grid Shutdown, and $45M Flood Relief Sovereign Aid.",
           calloutTitle: "CRITICAL INFRASTRUCTURE DEFENSE",
           calloutText: "An unauthorized forged command to a power substation could trigger a blackout for 4.2 million citizens. QDS guarantees mathematical immutability.",
           actionLabel: "⚡ Dispatch Organ Manifest Defense",
@@ -281,10 +327,11 @@
         },
         {
           id: "signer",
+          tab: "cockpit",
           target: "#sector-signer",
           category: "INTERACTIVE PLAYGROUND",
-          title: "Custom Document Signer & Teleportation",
-          speech: "You can sign custom high-value payloads in real-time! Type any clearance command, choose your quantum token count (50, 100, 200, or 500 Bell pairs), adjust fiber channel noise, and click 'Sign & Teleport Document'.",
+          title: "9. Sector 03: Custom Document Signer Playground",
+          speech: "You can sign custom high-value payloads in real-time! Type any clearance command, choose your quantum token count (50 to 500 Bell pairs), adjust fiber noise, and click 'Sign & Teleport Document'.",
           calloutTitle: "BENNETT 1993 FEEDFORWARD",
           calloutText: "Alice entangles the message qubit with an EPR pair, performs Bell State Measurement (BSM), and transmits 2 classical bits so Bob can apply the exact Pauli correction (I, X, Z, ZX).",
           actionLabel: "⚡ Sign Custom Sovereign Order",
@@ -295,9 +342,10 @@
         },
         {
           id: "threats",
+          tab: "cockpit",
           target: "#sector-threats",
           category: "ATTACK LAB",
-          title: "Controlled Cyber Threat Simulation Lab",
+          title: "10. Sector 04: Cyber Threat Simulation Lab (5 Vectors)",
           speech: "Test our deterministic Attribution Engine across 5 cyber threat models! Trigger Intercept-Resend Forgery (~34% ERR), Channel Decoherence (~12% ERR), Stale Nonce Replay, Signer Impersonation, or Unauthorized Verifier tampering.",
           calloutTitle: "DETERMINISTIC ATTRIBUTION",
           calloutText: "Unlike black-box machine learning that can hallucinate, our engine uses strict rule-based physics and cryptographic proofs to classify the exact attack mechanism.",
@@ -309,39 +357,81 @@
         },
         {
           id: "evidence",
+          tab: "cockpit",
           target: "#sector-evidence",
-          category: "MATHEMATICAL EVIDENCE",
-          title: "Scientific Evidence & Wald SPRT Stopping",
-          speech: "In SOC Analyst Mode, inspect the rigorous statistical mathematics: Wald SPRT early stopping terminates testing after only ~48 qubits (saving 74% of quantum resources), while Hoeffding bounds guarantee forgery bounds ≤ 1.42×10⁻⁶.",
-          calloutTitle: "TRIPLE-BASIS VERIFICATION",
+          category: "STATISTICAL EVIDENCE",
+          title: "11. Sector 05: Scientific Statistical Evidence & Wald SPRT",
+          speech: "In SOC Analyst Mode, inspect the rigorous mathematics: Wald SPRT early-stopping terminates testing after only ~48 qubits (saving 74% of quantum resources), while Hoeffding bounds guarantee forgery bounds ≤ 1.42×10⁻⁶.",
+          calloutTitle: "TRIPLE-BASIS TOMOGRAPHY",
           calloutText: "The chart displays match and mismatch distributions across Pauli Z, X, and Y measurement bases.",
           placement: "top"
         },
         {
-          id: "tabs",
-          target: "nav",
-          category: "ADVANCED LABS",
-          title: "Deep-Dive Labs & Merkle Audit Ledger",
-          speech: "Use the top navigation bar to explore deeper modules: Tab 2 (Teleportation Circuit Lab), Tab 3 (Attack Matrix), Tab 4 (Monte Carlo Benchmark Batch), Tab 5 (Ethereum-anchored Merkle Audit Ledger), and Tab 6 (Zeng-Christoph Multi-Party Arbitration).",
-          calloutTitle: "ALL SYSTEMS READY",
-          calloutText: "You are now fully trained to operate the Quetzalcoatl Quantum Digital Signature SOC! Press [T] anytime to restart this tour.",
-          actionLabel: "🔬 Open Teleportation Circuit Lab",
-          actionFn: () => {
-            if (typeof window.switchTab === "function") window.switchTab('circuit');
-          },
+          id: "tab_circuit",
+          tab: "circuit",
+          target: "#tab-circuit",
+          category: "QUANTUM CIRCUITS",
+          title: "12. Tab 2: 3-Qubit Bennett Teleportation Circuit Lab",
+          speech: "Let's inspect the teleportation circuit! Here is an exact step-by-step visualizer of Bennett 1993: input state |ψ⟩, EPR Bell pair generation (|Φ+⟩), Bell State Measurement (BSM), classical feedforward bits, and Bob's Pauli correction.",
+          calloutTitle: "ZERO QUANTUM CHANNEL TRANSMISSION",
+          calloutText: "Reconstruction fidelity exceeds 99.9% without ever transmitting the quantum signature state through a physical wire.",
+          placement: "bottom"
+        },
+        {
+          id: "tab_matrix",
+          tab: "matrix",
+          target: "#tab-matrix",
+          category: "THREAT MODELING",
+          title: "13. Tab 3: Attack Comparison Matrix",
+          speech: "The Attack Matrix provides a comprehensive side-by-side comparison of all 5 threat models against nominal conditions, detailing QBER signatures, entropy shifts, and cryptographic impact.",
+          calloutTitle: "EVALUATION RUBRIC",
+          calloutText: "Provides auditors and judges with complete clarity on how quantum physics distinguishes malicious attacks from physical decoherence.",
+          placement: "bottom"
+        },
+        {
+          id: "tab_experiments",
+          tab: "experiments",
+          target: "#tab-experiments",
+          category: "MONTE CARLO TESTING",
+          title: "14. Tab 4: Monte Carlo Batch Benchmark Engine",
+          speech: "Run automated Monte Carlo batches of 30 to 100 trials to measure empirical False Acceptance Rate (FAR = 0.00%) and False Rejection Rate (FRR = 0.00%) with millisecond latency benchmarking.",
+          calloutTitle: "STATISTICAL RIGOR",
+          calloutText: "Validates high-throughput performance and statistical robustness under varying optical disturbance.",
+          placement: "bottom"
+        },
+        {
+          id: "tab_audit",
+          tab: "audit",
+          target: "#tab-audit",
+          category: "FORENSIC INTEGRITY",
+          title: "15. Tab 5: Tamper-Evident Merkle Audit Ledger",
+          speech: "Here is the forensic audit ledger! Every event has a cryptographic leaf hash. You can click 'Inspect Proof' to trace the Merkle sibling path, or click 'Simulate Tampering' to watch modified records get quarantined.",
+          calloutTitle: "IMMUTABLE AUDIT CHAIN",
+          calloutText: "Guarantees that once a signature verdict is registered, no insider or attacker can silently alter the log.",
+          placement: "bottom"
+        },
+        {
+          id: "tab_arbitration",
+          tab: "multi-party",
+          target: "#tab-multi-party",
+          category: "NON-REPUDIATION",
+          title: "16. Tab 6: Multi-Party Non-Repudiation Arbitration",
+          speech: "Zeng-Christoph arbitration guarantees non-repudiation: Alice cannot sign an order for Bob and later deny it when Bob forwards it to Charlie. If Alice sends conflicting keys, Charlie detects the gap (|e_B - e_C| > 10%) and blocks transfer.",
+          calloutTitle: "NON-REPUDIATION THEOREM",
+          calloutText: "Guarantees cross-agency document validity without requiring a centralized, trusted third-party arbiter.",
           placement: "bottom"
         }
       ];
     }
 
-    // Step Definitions for Minimal / Mobile SPA
+    // Step Definitions for Mobile / Minimal View
     getMobileSteps() {
       return [
         {
           id: "mob-welcome",
           target: "#hdr-title",
           category: "MOBILE BRIEFING",
-          title: "Quetzalcoatl Ultra-Minimal Mobile SPA",
+          title: "1. Quetzalcoatl Ultra-Minimal Mobile SPA",
           speech: "Welcome to the ultra-minimal mobile view! Designed for field security officers to inspect quantum signature verifications on smartphones and tablets.",
           calloutTitle: "STANDALONE HYBRID ARCHITECTURE",
           calloutText: "Functions completely standalone in offline field environments or automatically syncs with the central SOC server when connected.",
@@ -351,7 +441,7 @@
           id: "mob-pipeline",
           target: "#pipeline-stepper",
           category: "PIPELINE ENGINE",
-          title: "4-Stage Teleportation Pipeline",
+          title: "2. 4-Stage Teleportation Pipeline",
           speech: "Tap through the 4 core stages of quantum signing: 1. Session Initialization, 2. Nonce Generation, 3. Bell State Teleportation, and 4. Measurement & Verification.",
           calloutTitle: "CIRCUIT RECONSTRUCTION",
           calloutText: "Each stage updates the classical feedforward bits and applies the required Pauli correction matrix.",
@@ -361,7 +451,7 @@
           id: "mob-vectors",
           target: "#vector-buttons",
           category: "ATTACK VECTORS",
-          title: "Field Threat Simulation Vectors",
+          title: "3. Field Threat Simulation Vectors",
           speech: "Quickly toggle between Nominal baseline, Quantum Forgery (~34% QBER), Channel Decoherence Noise, and Replay vectors to test the mobile detection engine.",
           calloutTitle: "INSTANT DECISION",
           calloutText: "The mobile cockpit renders immediate ACCEPT, ALERT, or BLOCK status badges with vibration and audio cues.",
@@ -371,7 +461,7 @@
           id: "mob-missions",
           target: "#social-missions-panel",
           category: "SOCIAL IMPACT MISSIONS",
-          title: "Emergency Social Problem Scenarios",
+          title: "4. Emergency Social Problem Scenarios",
           speech: "Inspect how emergency organ dispatch (#HRT-2026) and SCADA power grid commands are secured against tampering in life-critical field operations.",
           calloutTitle: "REAL-TIME IMPACT",
           calloutText: "Each mission details the specific citizen lives or infrastructure gigawatts protected by quantum physics.",
@@ -381,7 +471,7 @@
           id: "mob-ledger",
           target: "#view-ledger",
           category: "MERKLE AUDIT",
-          title: "Immutable Forensic Ledger",
+          title: "5. Immutable Forensic Ledger",
           speech: "Every signature verdict is cryptographically hashed into an append-only Merkle tree and anchored to the blockchain for non-repudiation and court-admissible audit trails.",
           calloutTitle: "TAMPER EVIDENT",
           calloutText: "Any unauthorized modification to historical records invalidates the Merkle root hash instantly.",
@@ -398,11 +488,17 @@
       return isMinimal ? this.getMobileSteps() : this.getDesktopSteps();
     }
 
-    // Bind Controls and Hotkeys
+    // Bind Controls & Global Hotkeys
     bindEvents() {
       document.getElementById("tour-btn-close")?.addEventListener("click", () => this.stop());
-      document.getElementById("tour-btn-next")?.addEventListener("click", () => this.next());
-      document.getElementById("tour-btn-prev")?.addEventListener("click", () => this.prev());
+      document.getElementById("tour-btn-next")?.addEventListener("click", () => {
+        this.next();
+        if (this.isAutoPlaying) this.startCountdownTimer();
+      });
+      document.getElementById("tour-btn-prev")?.addEventListener("click", () => {
+        this.prev();
+        if (this.isAutoPlaying) this.startCountdownTimer();
+      });
       document.getElementById("tour-btn-mute")?.addEventListener("click", () => this.toggleMute());
       document.getElementById("tour-btn-autoplay")?.addEventListener("click", () => this.toggleAutoPlay());
 
@@ -420,9 +516,11 @@
         if (e.key === "ArrowRight" || e.key === "Enter") {
           e.preventDefault();
           this.next();
+          if (this.isAutoPlaying) this.startCountdownTimer();
         } else if (e.key === "ArrowLeft") {
           e.preventDefault();
           this.prev();
+          if (this.isAutoPlaying) this.startCountdownTimer();
         } else if (e.key === "Escape") {
           e.preventDefault();
           this.stop();
@@ -444,24 +542,36 @@
       }, { passive: true });
     }
 
+    // Start Guided Tour (Defaults to Auto-Play without clicking anything)
     start(stepIndex = 0) {
       this.isActive = true;
       this.currentStep = stepIndex;
+      this.isAutoPlaying = true; // Auto-play enabled immediately!
+
       const root = document.getElementById("tour-bot-root");
       if (root) root.classList.remove("hidden");
 
-      // Stop any existing auto-play timer
-      this.stopAutoPlay();
+      // Dismiss any open tooltip
+      const tt = document.getElementById("quantum-tooltip");
+      if (tt) tt.classList.remove("active");
 
       this.soundNext();
       this.renderCurrentStep();
+      this.startCountdownTimer();
     }
 
     stop() {
       this.isActive = false;
-      this.stopAutoPlay();
+      this.stopCountdownTimer();
+
       const root = document.getElementById("tour-bot-root");
       if (root) root.classList.add("hidden");
+
+      // Reset to cockpit tab on exit
+      if (typeof window.switchTab === "function") {
+        window.switchTab("cockpit");
+      }
+
       this.soundExit();
     }
 
@@ -480,10 +590,10 @@
         this.soundNext();
         this.renderCurrentStep();
       } else {
-        // Finished tour
+        // Tour completed
         this.stop();
         if (typeof window.showToast === "function") {
-          window.showToast("success", "Tour Complete", "You are now ready to pilot the Quetzalcoatl Quantum SOC!");
+          window.showToast("success", "Tour Complete", "You have completed the full Quetzalcoatl SOC walkthrough!");
         }
       }
     }
@@ -506,57 +616,77 @@
 
     toggleAutoPlay() {
       if (this.isAutoPlaying) {
-        this.stopAutoPlay();
+        this.isAutoPlaying = false;
+        this.stopCountdownTimer();
+        this.updateAutoPlayUi(false);
       } else {
-        this.startAutoPlay();
+        this.isAutoPlaying = true;
+        this.updateAutoPlayUi(true);
+        this.startCountdownTimer();
       }
     }
 
-    startAutoPlay() {
-      this.isAutoPlaying = true;
-      this.autoPlayRemaining = this.autoPlayIntervalSeconds;
-      this.updateAutoPlayUi();
+    startCountdownTimer() {
+      this.stopCountdownTimer();
+      if (!this.isAutoPlaying || !this.isActive) return;
 
-      this.countdownInterval = setInterval(() => {
-        this.autoPlayRemaining--;
-        this.updateAutoPlayUi();
-        if (this.autoPlayRemaining <= 0) {
+      this.timerStart = performance.now();
+
+      const tick = (now) => {
+        if (!this.isAutoPlaying || !this.isActive) return;
+
+        const elapsed = now - this.timerStart;
+        const remaining = Math.max(0, this.stepDuration - elapsed);
+        const pct = (remaining / this.stepDuration) * 100;
+
+        const bar = document.getElementById("tour-countdown-bar");
+        const val = document.getElementById("tour-countdown-val");
+
+        if (bar) bar.style.width = `${pct}%`;
+        if (val) val.textContent = `${(remaining / 1000).toFixed(1)}s`;
+
+        if (elapsed >= this.stepDuration) {
           const steps = this.getSteps();
           if (this.currentStep < steps.length - 1) {
             this.next();
-            this.autoPlayRemaining = this.autoPlayIntervalSeconds;
+            this.startCountdownTimer();
           } else {
             this.stop();
           }
+        } else {
+          this.animFrameId = requestAnimationFrame(tick);
         }
-      }, 1000);
+      };
+
+      this.animFrameId = requestAnimationFrame(tick);
     }
 
-    stopAutoPlay() {
-      this.isAutoPlaying = false;
-      if (this.countdownInterval) {
-        clearInterval(this.countdownInterval);
-        this.countdownInterval = null;
+    stopCountdownTimer() {
+      if (this.animFrameId) {
+        cancelAnimationFrame(this.animFrameId);
+        this.animFrameId = null;
       }
-      this.updateAutoPlayUi();
     }
 
-    updateAutoPlayUi() {
+    updateAutoPlayUi(isPlaying) {
       const icon = document.getElementById("tour-autoplay-icon");
       const label = document.getElementById("tour-autoplay-label");
-      const timer = document.getElementById("tour-autoplay-timer");
+      const statusBadge = document.getElementById("tour-auto-status");
       const btn = document.getElementById("tour-btn-autoplay");
+      const countWrapper = document.querySelector(".tour-countdown-wrapper");
 
-      if (this.isAutoPlaying) {
+      if (isPlaying) {
         if (icon) icon.textContent = "⏸";
         if (label) label.textContent = "Pause";
-        if (timer) timer.textContent = `(${this.autoPlayRemaining}s)`;
+        if (statusBadge) statusBadge.textContent = "AUTOMATED TOUR";
         if (btn) btn.classList.add("active");
+        if (countWrapper) countWrapper.style.opacity = "1";
       } else {
         if (icon) icon.textContent = "▶";
-        if (label) label.textContent = "Auto";
-        if (timer) timer.textContent = "";
+        if (label) label.textContent = "Resume";
+        if (statusBadge) statusBadge.textContent = "PAUSED";
         if (btn) btn.classList.remove("active");
+        if (countWrapper) countWrapper.style.opacity = "0.4";
       }
     }
 
@@ -565,10 +695,9 @@
       const step = steps[this.currentStep];
       if (!step) return;
 
-      // Reset AutoPlay timer on step change
-      if (this.isAutoPlaying) {
-        this.autoPlayRemaining = this.autoPlayIntervalSeconds;
-        this.updateAutoPlayUi();
+      // Automatically switch to correct tab if step requires it!
+      if (step.tab && typeof window.switchTab === "function") {
+        window.switchTab(step.tab);
       }
 
       // 1. Update Indicators
@@ -610,7 +739,6 @@
         if (actionContainer) actionContainer.classList.remove("hidden");
         if (actionLabel) actionLabel.textContent = step.actionLabel;
 
-        // Replace click listener
         const newBtn = actionBtn.cloneNode(true);
         actionBtn.parentNode.replaceChild(newBtn, actionBtn);
         newBtn.addEventListener("click", () => {
@@ -633,6 +761,8 @@
         nextBtn.textContent = this.currentStep === steps.length - 1 ? "Complete ✓" : "Next ➔";
       }
 
+      this.updateAutoPlayUi(this.isAutoPlaying);
+
       // 5. Position spotlight and dialog over target element
       this.positionOnTarget();
     }
@@ -652,7 +782,6 @@
       const dialog = document.getElementById("tour-bot-dialog");
 
       if (!el) {
-        // Fallback: Centered dialog without cutout
         if (maskHole) {
           maskHole.setAttribute("width", "0");
           maskHole.setAttribute("height", "0");
@@ -666,23 +795,13 @@
         return;
       }
 
-      // Ensure target is on visible tab if inside tabbed container
-      const tabAncestor = el.closest("[id^='tab-']");
-      if (tabAncestor && tabAncestor.classList.contains("hidden")) {
-        const tabId = tabAncestor.id.replace("tab-", "");
-        if (typeof window.switchTab === "function") {
-          window.switchTab(tabId);
-        }
-      }
-
-      // Scroll element smoothly into view if needed
+      // Smoothly scroll target element into viewport center
       const rect = el.getBoundingClientRect();
       const isVisible = rect.top >= 80 && rect.bottom <= window.innerHeight - 80;
       if (!isVisible) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
       }
 
-      // Allow a frame for scroll to calculate accurate client rect
       setTimeout(() => {
         const updatedRect = el.getBoundingClientRect();
         const pad = 10;
@@ -710,13 +829,13 @@
 
         // 3. Position Conversational Bot Dialog
         if (dialog) {
-          const dialogWidth = Math.min(window.innerWidth - 32, 420);
-          const dialogHeight = 360; // Estimated max height
+          const dialogWidth = Math.min(window.innerWidth - 32, 440);
+          const dialogHeight = 400; // Estimated height
           const margin = 16;
 
           let topPos, leftPos;
 
-          // On mobile screens (< 640px), stick dialog comfortably at screen bottom
+          // On mobile screens (< 640px), dock dialog at bottom
           if (window.innerWidth < 640) {
             dialog.style.top = "auto";
             dialog.style.bottom = "16px";
@@ -726,21 +845,21 @@
             return;
           }
 
-          // Desktop positioning: Place below if enough space, else above
+          // Desktop positioning: Place below if room, else above
           const spaceBelow = window.innerHeight - (y + h);
           const spaceAbove = y;
 
           if (spaceBelow >= dialogHeight || spaceBelow >= spaceAbove) {
-            // Place Below target
             topPos = y + h + margin;
           } else {
-            // Place Above target
             topPos = Math.max(margin, y - dialogHeight - margin);
           }
 
+          // Clamp top position inside window
+          topPos = Math.max(margin, Math.min(window.innerHeight - dialogHeight - margin, topPos));
+
           // Center horizontally relative to target element
           leftPos = x + (w / 2) - (dialogWidth / 2);
-          // Clamp inside viewport
           leftPos = Math.max(margin, Math.min(window.innerWidth - dialogWidth - margin, leftPos));
 
           dialog.style.top = `${topPos}px`;
@@ -749,7 +868,7 @@
           dialog.style.right = "auto";
           dialog.style.transform = "none";
         }
-      }, 50);
+      }, 60);
     }
   }
 

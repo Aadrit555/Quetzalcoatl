@@ -887,21 +887,28 @@ function initHoverExplainerEngine() {
 
   let currentTarget = null;
   let hideTimeout = null;
+  let hoverShowTimer = null;
 
   function positionTooltip(target) {
     const rect = target.getBoundingClientRect();
     const ttWidth = 320;
-    const ttHeight = 100;
+    const ttHeight = 110;
     const padding = 12;
 
-    // Prefer placing directly above the element
-    let top = rect.top - ttHeight - 8;
-    let left = rect.left + (rect.width / 2) - (ttWidth / 2);
+    // Prefer placing directly below if element is in top half of screen, or above if in bottom half
+    let top;
+    if (rect.top < 240) {
+      top = rect.bottom + 8;
+    } else {
+      top = rect.top - ttHeight - 8;
+    }
 
-    // If too close to top edge, flip to below element
-    if (top < padding) {
+    // Ensure it NEVER overlaps the header bar (y < 72px)
+    if (top < 72) {
       top = rect.bottom + 8;
     }
+
+    let left = rect.left + (rect.width / 2) - (ttWidth / 2);
 
     // Keep within horizontal window bounds
     if (left < padding) {
@@ -920,6 +927,11 @@ function initHoverExplainerEngine() {
   }
 
   function showExplainer(target) {
+    if (window.QuetzalcoatlTour && window.QuetzalcoatlTour.isActive) {
+      dismissTooltip();
+      return;
+    }
+
     if (hideTimeout) {
       clearTimeout(hideTimeout);
       hideTimeout = null;
@@ -946,13 +958,26 @@ function initHoverExplainerEngine() {
   }
 
   document.addEventListener("mouseover", (e) => {
+    if (window.QuetzalcoatlTour && window.QuetzalcoatlTour.isActive) {
+      dismissTooltip();
+      return;
+    }
     const target = e.target.closest("[data-explain-title]");
     if (target) {
-      showExplainer(target);
+      if (hoverShowTimer) clearTimeout(hoverShowTimer);
+      hoverShowTimer = setTimeout(() => {
+        if (!window.QuetzalcoatlTour || !window.QuetzalcoatlTour.isActive) {
+          showExplainer(target);
+        }
+      }, 200);
     }
   });
 
   document.addEventListener("mouseout", (e) => {
+    if (hoverShowTimer) {
+      clearTimeout(hoverShowTimer);
+      hoverShowTimer = null;
+    }
     const fromTarget = e.target.closest("[data-explain-title]");
     if (!fromTarget) return;
 
