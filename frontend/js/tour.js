@@ -15,7 +15,6 @@
       this.isMuted = localStorage.getItem("qds_tour_muted") === "true";
       this.voiceEnabled = localStorage.getItem("qds_tour_voice") !== "false"; // Spoken vocal voice enabled by default!
       this.voiceEngine = localStorage.getItem("qds_tour_voice_engine") || "elevenlabs"; // "elevenlabs" (default) or "webspeech"
-      this.elevenVoiceId = localStorage.getItem("qds_tour_eleven_voice") || "21m00Tcm4TlvDq8ikWAM"; // Rachel (Agent Q)
       this.elevenVoiceId = localStorage.getItem("qds_tour_eleven_voice") || "pNInz6obpgDQGcFmaJgB"; // Adam (Deep Authoritative SOC Narrator)
       this.selectedWebVoiceName = localStorage.getItem("qds_tour_web_voice") || "";
       this.voicePitch = parseFloat(localStorage.getItem("qds_tour_pitch") || "0.88"); // Deep resonant JARVIS tone
@@ -70,7 +69,6 @@
           badge.title = "ElevenLabs key missing; falling back to Web Speech";
         }
       } else {
-        badge.textContent = "BROWSER TTS";
         badge.textContent = "SYSTEM VOICE";
         badge.className = "tour-engine-badge badge-webspeech";
         badge.title = "Browser Web Speech API Active";
@@ -98,7 +96,6 @@
 
     updateSettingsModalValues() {
       const input = document.getElementById("input-eleven-key");
-      const selVoice = document.getElementById("select-eleven-voice");
       const selElevenVoice = document.getElementById("select-eleven-voice");
       const selWebVoice = document.getElementById("select-web-voice");
       const btnEleven = document.getElementById("opt-provider-eleven");
@@ -110,7 +107,6 @@
       const rateVal = document.getElementById("val-voice-rate");
 
       if (input) input.value = this.elevenApiKey || "";
-      if (selVoice) selVoice.value = this.elevenVoiceId;
       if (selElevenVoice) selElevenVoice.value = this.elevenVoiceId;
       if (selWebVoice && this.selectedVoice) selWebVoice.value = this.selectedVoice.name;
 
@@ -137,36 +133,19 @@
     updateSettingsModalStatus() {
       const statusEl = document.getElementById("eleven-key-status");
       if (!statusEl) return;
-      const isReady = this.elevenStatus?.available || Boolean(this.elevenApiKey);
-      if (isReady) {
-        statusEl.innerHTML = `<span class="text-emerald-400">● Connected</span> — ${this.elevenStatus?.cached_audio_count || 0} clips cached (0ms latency)`;
-        const key = (this.elevenApiKey || "").trim();
-        const hasEnvKey = Boolean(this.elevenStatus?.has_key);
+      const key = (this.elevenApiKey || "").trim();
+      const hasEnvKey = Boolean(this.elevenStatus?.has_key);
 
-        if (key && !key.startsWith("sk_")) {
-          statusEl.innerHTML = `<span class="text-amber-400">⚠️ Key ID entered</span>: Secret API keys start with <code class="text-white font-bold">sk_...</code>. Copy the Secret Key from ElevenLabs.`;
-          statusEl.innerHTML = `<span class="text-amber-400">⚠️ Key ID entered</span>: Secret API keys start with <code class="text-white font-bold">sk_...</code>.`;
-        } else if (key.startsWith("sk_") || hasEnvKey) {
-          statusEl.innerHTML = `<span class="text-emerald-400">● Key Configured</span> — ${this.elevenStatus?.cached_audio_count || 0} clips cached (0ms latency)`;
-        } else {
-          statusEl.innerHTML = `<span class="text-zinc-400">○ No Key Detected</span>. Paste key above or add <code class="text-zinc-300">ELEVENLABS_API_KEY</code> to <code class="text-zinc-300">.env</code>.`;
-          statusEl.innerHTML = `<span class="text-zinc-400">○ No Key Detected</span>. Paste <code class="text-zinc-300">sk_...</code> above or set in <code class="text-zinc-300">.env</code>.`;
-          statusEl.innerHTML = `<span class="text-zinc-400">○ Local Fallback Ready</span>`;
-        }
+      if (key && !key.startsWith("sk_")) {
+        statusEl.innerHTML = `<span class="text-amber-400">⚠️ Key ID entered</span>: Secret API keys start with <code class="text-white font-bold">sk_...</code>. Copy the Secret Key from ElevenLabs.`;
+      } else if (key.startsWith("sk_") || hasEnvKey) {
+        statusEl.innerHTML = `<span class="text-emerald-400">● Key Configured</span> — ${this.elevenStatus?.cached_audio_count || 0} clips cached (0ms latency)`;
       } else {
         statusEl.innerHTML = `<span class="text-zinc-400">○ No Key Detected</span>. Paste <code class="text-zinc-300">sk_...</code> above or set in <code class="text-zinc-300">.env</code>.`;
       }
     }
 
     async testVoiceSample() {
-        const status = document.getElementById("voice-sample-status");
-        if (status) status.textContent = "Synthesizing...";
-        this.stopSpeaking();
-        const sampleText = "Greetings, Operator. ElevenLabs neural AI voice is active on Quetzalcoatl SOC.";
-        await this.speakStep(sampleText);
-        if (status) status.textContent = "Playing sample...";
-        setTimeout(() => { if (status) status.textContent = ""; }, 4000);
-      }
       const status = document.getElementById("voice-sample-status");
       if (status) status.textContent = "Speaking...";
       this.stopSpeaking();
@@ -176,9 +155,6 @@
       setTimeout(() => { if (status) status.textContent = ""; }, 3500);
     }
 
-      showVoiceNotification(msg, type = "info") {
-        if (typeof window.showToast === "function") {
-          window.showToast(type, "Voice Engine", msg);
     applyPersona(persona) {
       if (persona === "jarvis") {
         this.voicePitch = 0.82;
@@ -212,33 +188,6 @@
       this.testVoiceSample();
     }
 
-      // Voice Synthesizer via Native Web Speech API (Local Fallback)
-      initVoices() {
-        if (!('speechSynthesis' in window)) return;
-        const selectBestVoice = () => {
-          const voices = window.speechSynthesis.getVoices();
-          if (!voices || !voices.length) return;
-          const natural = voices.find(v => v.lang && v.lang.startsWith("en") && (
-            v.name.includes("Natural") ||
-            v.name.includes("Google US English") ||
-            v.name.includes("Neural") ||
-            v.name.includes("Jenny") ||
-            v.name.includes("Guy") ||
-            v.name.includes("Aria") ||
-            v.name.includes("Daniel") ||
-            v.name.includes("Samantha")
-          ));
-          this.selectedVoice = natural || voices.find(v => v.lang && v.lang.startsWith("en")) || voices[0];
-        };
-    showVoiceNotification(msg, type = "info") {
-      if (typeof window.showToast === "function") {
-        window.showToast(type, "Voice Engine", msg);
-      }
-    }
-
-        selectBestVoice();
-        if (window.speechSynthesis.onvoiceschanged !== undefined) {
-          window.speechSynthesis.onvoiceschanged = selectBestVoice;
     populateWebVoices() {
       const selWeb = document.getElementById("select-web-voice");
       if (!selWeb || !('speechSynthesis' in window)) return;
@@ -261,6 +210,12 @@
       });
     }
 
+    showVoiceNotification(msg, type = "info") {
+      if (typeof window.showToast === "function") {
+        window.showToast(type, "Voice Engine", msg);
+      }
+    }
+
     // Voice Synthesizer via Native Web Speech API (Local Fallback)
     initVoices() {
       if (!('speechSynthesis' in window)) return;
@@ -268,7 +223,6 @@
         const voices = window.speechSynthesis.getVoices();
         if (!voices || !voices.length) return;
 
-        // 1. If user previously chose a specific voice, restore it
         if (this.selectedWebVoiceName) {
           const match = voices.find(v => v.name === this.selectedWebVoiceName);
           if (match) {
@@ -278,7 +232,6 @@
           }
         }
 
-        // 2. Select deep male / authoritative cyber voice (avoid high/female voices by default)
         const deepMaleVoice = voices.find(v => v.lang && v.lang.startsWith("en") && (
           v.name.includes("Guy Online (Natural)") ||
           v.name.includes("Guy Neural") ||
@@ -313,42 +266,20 @@
     }
 
     async speakStep(text) {
-        this.stopSpeaking();
-        if (!this.voiceEnabled) return;
       this.stopSpeaking();
       if (!this.voiceEnabled) return;
 
-        // 1. Try ElevenLabs Neural Voice if selected
-        if (this.voiceEngine === "elevenlabs") {
-          try {
-            this.isSpeaking = true;
-            this.updateSpeakingWave(true);
       // 1. Try ElevenLabs Neural Voice if selected
       if (this.voiceEngine === "elevenlabs") {
         try {
           this.isSpeaking = true;
           this.updateSpeakingWave(true);
 
-            const headers = { "Content-Type": "application/json" };
-            if (this.elevenApiKey) {
-              headers["xi-api-key"] = this.elevenApiKey;
-            }
           const headers = { "Content-Type": "application/json" };
           if (this.elevenApiKey) {
             headers["xi-api-key"] = this.elevenApiKey;
           }
 
-            this.audioAbortController = new AbortController();
-            const resp = await fetch("/api/tts", {
-              method: "POST",
-              headers,
-              body: JSON.stringify({
-                text,
-                voice_id: this.elevenVoiceId,
-                api_key: this.elevenApiKey || undefined
-              }),
-              signal: this.audioAbortController.signal
-            });
           this.audioAbortController = new AbortController();
           const resp = await fetch("/api/tts", {
             method: "POST",
@@ -361,41 +292,17 @@
             signal: this.audioAbortController.signal
           });
 
-            const contentType = resp.headers.get("Content-Type") || "";
-            if (resp.ok && contentType.includes("audio")) {
-              const blob = await resp.blob();
-              const audioUrl = URL.createObjectURL(blob);
-              this.audioPlayer.src = audioUrl;
           const contentType = resp.headers.get("Content-Type") || "";
           if (resp.ok && contentType.includes("audio")) {
             const blob = await resp.blob();
             const audioUrl = URL.createObjectURL(blob);
             this.audioPlayer.src = audioUrl;
 
-              this.audioPlayer.onplay = () => {
-                this.isSpeaking = true;
-                this.updateSpeakingWave(true);
-              };
             this.audioPlayer.onplay = () => {
               this.isSpeaking = true;
               this.updateSpeakingWave(true);
             };
 
-              this.audioPlayer.onended = () => {
-                this.isSpeaking = false;
-                this.updateSpeakingWave(false);
-                URL.revokeObjectURL(audioUrl);
-                if (this.isAutoPlaying && this.isActive) {
-                  this.speechTimeoutId = setTimeout(() => {
-                    const steps = this.getSteps();
-                    if (this.currentStep < steps.length - 1) {
-                      this.next();
-                    } else {
-                      this.stop();
-                    }
-                  }, 1000);
-                }
-              };
             this.audioPlayer.onended = () => {
               this.isSpeaking = false;
               this.updateSpeakingWave(false);
@@ -412,27 +319,12 @@
               }
             };
 
-              this.audioPlayer.onerror = (e) => {
-                console.warn("ElevenLabs audio playback failed, falling back to WebSpeech:", e);
-                URL.revokeObjectURL(audioUrl);
-                this.speakWebSpeech(text);
-              };
             this.audioPlayer.onerror = (e) => {
               console.warn("ElevenLabs audio playback failed, falling back to WebSpeech:", e);
               URL.revokeObjectURL(audioUrl);
               this.speakWebSpeech(text);
             };
 
-              await this.audioPlayer.play();
-              return;
-            } else {
-              // Server returned JSON fallback (e.g. 401 key missing or quota limit)
-              this.speakWebSpeech(text);
-              return;
-            }
-          } catch (err) {
-            if (err.name === "AbortError") return;
-            console.warn("ElevenLabs fetch error, falling back to WebSpeech:", err);
             await this.audioPlayer.play();
             return;
           } else {
@@ -446,26 +338,12 @@
           this.speakWebSpeech(text);
           return;
         }
-
-        // 2. Default Browser Web Speech API
-        this.speakWebSpeech(text);
       }
 
-      speakWebSpeech(text) {
-        if (!('speechSynthesis' in window)) return;
-        try {
-          const utter = new SpeechSynthesisUtterance(text);
-          utter.rate = 1.02; // crisp, comfortable speaking pace
-          utter.pitch = 1.0;
-          if (this.selectedVoice) utter.voice = this.selectedVoice;
       // 2. Default Browser Web Speech API
       this.speakWebSpeech(text);
     }
 
-          utter.onstart = () => {
-            this.isSpeaking = true;
-            this.updateSpeakingWave(true);
-          };
     speakWebSpeech(text) {
       if (!('speechSynthesis' in window)) return;
       try {
@@ -474,29 +352,11 @@
         utter.pitch = this.voicePitch || 0.88; // Deep resonant JARVIS tone
         if (this.selectedVoice) utter.voice = this.selectedVoice;
 
-          utter.onend = () => {
-            this.isSpeaking = false;
-            this.updateSpeakingWave(false);
-            if (this.isAutoPlaying && this.isActive) {
-              this.speechTimeoutId = setTimeout(() => {
-                const steps = this.getSteps();
-                if (this.currentStep < steps.length - 1) {
-                  this.next();
-                } else {
-                  this.stop();
-                }
-              }, 1000);
-            }
-          };
         utter.onstart = () => {
           this.isSpeaking = true;
           this.updateSpeakingWave(true);
         };
 
-          utter.onerror = () => {
-            this.isSpeaking = false;
-            this.updateSpeakingWave(false);
-          };
         utter.onend = () => {
           this.isSpeaking = false;
           this.updateSpeakingWave(false);
@@ -512,11 +372,6 @@
           }
         };
 
-          this.currentUtterance = utter;
-          window.speechSynthesis.speak(utter);
-        } catch (err) {
-          console.warn("WebSpeech error:", err);
-        }
         utter.onerror = () => {
           this.isSpeaking = false;
           this.updateSpeakingWave(false);
@@ -529,10 +384,6 @@
       }
     }
 
-      stopSpeaking() {
-        if (this.speechTimeoutId) {
-          clearTimeout(this.speechTimeoutId);
-          this.speechTimeoutId = null;
     stopSpeaking() {
       if (this.speechTimeoutId) {
         clearTimeout(this.speechTimeoutId);
@@ -566,35 +417,9 @@
         } else {
           wave.classList.add("hidden");
         }
-        if (this.audioAbortController) {
-          this.audioAbortController.abort();
-          this.audioAbortController = null;
-        }
-        if (this.audioPlayer) {
-          try {
-            this.audioPlayer.pause();
-            this.audioPlayer.currentTime = 0;
-          } catch (e) { }
-        }
-        if ('speechSynthesis' in window) {
-          try {
-            window.speechSynthesis.cancel();
-          } catch (e) { }
-        }
-        this.isSpeaking = false;
-        this.currentUtterance = null;
-        this.updateSpeakingWave(false);
       }
     }
 
-      updateSpeakingWave(isSpeaking) {
-        const wave = document.getElementById("tour-voice-wave");
-        if (wave) {
-          if (isSpeaking) {
-            wave.classList.remove("hidden");
-          } else {
-            wave.classList.add("hidden");
-          }
     toggleVoice() {
       this.voiceEnabled = !this.voiceEnabled;
       localStorage.setItem("qds_tour_voice", this.voiceEnabled.toString());
@@ -612,26 +437,14 @@
       }
     }
 
-      toggleVoice() {
-        this.voiceEnabled = !this.voiceEnabled;
-        localStorage.setItem("qds_tour_voice", this.voiceEnabled.toString());
-        this.updateVoiceUi();
-
     updateVoiceUi() {
       const btn = document.getElementById("tour-btn-voice");
       const icon = document.getElementById("tour-voice-icon");
       if (btn) {
         if (this.voiceEnabled) {
-          const steps = this.getSteps();
-          const step = steps[this.currentStep];
-          if (step && this.isActive) {
-            this.speakStep(step.speech);
-            if (this.isAutoPlaying) this.startCountdownTimer();
-          }
           btn.classList.add("tour-voice-on");
           btn.title = "Spoken Voice: ON (Click to mute voice) [V]";
         } else {
-          this.stopSpeaking();
           btn.classList.remove("tour-voice-on");
           btn.title = "Spoken Voice: OFF (Click to unmute voice) [V]";
         }
@@ -641,17 +454,6 @@
       }
     }
 
-      updateVoiceUi() {
-        const btn = document.getElementById("tour-btn-voice");
-        const icon = document.getElementById("tour-voice-icon");
-        if (btn) {
-          if (this.voiceEnabled) {
-            btn.classList.add("tour-voice-on");
-            btn.title = "Spoken Voice: ON (Click to mute voice) [V]";
-          } else {
-            btn.classList.remove("tour-voice-on");
-            btn.title = "Spoken Voice: OFF (Click to unmute voice) [V]";
-          }
     // Sound Synthesizer via Web Audio API (Native zero-asset sound effects)
     playTone(freqStart, freqEnd, duration, type = "sine") {
       if (this.isMuted) return;
@@ -660,54 +462,22 @@
           const AudioContextClass = window.AudioContext || window.webkitAudioContext;
           if (AudioContextClass) this.audioCtx = new AudioContextClass();
         }
-        if (icon) {
-          icon.textContent = this.voiceEnabled ? "🎙️" : "🔇";
-        }
-      }
         if (!this.audioCtx) return;
         if (this.audioCtx.state === "suspended") this.audioCtx.resume();
 
-      // Sound Synthesizer via Web Audio API (Native zero-asset sound effects)
-      playTone(freqStart, freqEnd, duration, type = "sine") {
-        if (this.isMuted) return;
-        try {
-          if (!this.audioCtx) {
-            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-            if (AudioContextClass) this.audioCtx = new AudioContextClass();
-          }
-          if (!this.audioCtx) return;
-          if (this.audioCtx.state === "suspended") this.audioCtx.resume();
         const osc = this.audioCtx.createOscillator();
         const gain = this.audioCtx.createGain();
         osc.type = type;
 
-          const osc = this.audioCtx.createOscillator();
-          const gain = this.audioCtx.createGain();
-          osc.type = type;
         const now = this.audioCtx.currentTime;
         osc.frequency.setValueAtTime(freqStart, now);
         if (freqEnd && freqEnd !== freqStart) {
           osc.frequency.exponentialRampToValueAtTime(freqEnd, now + duration);
         }
 
-          const now = this.audioCtx.currentTime;
-          osc.frequency.setValueAtTime(freqStart, now);
-          if (freqEnd && freqEnd !== freqStart) {
-            osc.frequency.exponentialRampToValueAtTime(freqEnd, now + duration);
-          }
         gain.gain.setValueAtTime(0.04, now);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
-          gain.gain.setValueAtTime(0.04, now);
-          gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-          osc.connect(gain);
-          gain.connect(this.audioCtx.destination);
-          osc.start(now);
-          osc.stop(now + duration);
-        } catch (e) {
-          // AudioContext blocked or not allowed
-        }
         osc.connect(gain);
         gain.connect(this.audioCtx.destination);
         osc.start(now);
@@ -717,49 +487,30 @@
       }
     }
 
-      soundNext() {
-        this.playTone(540, 880, 0.12, "sine");
-      }
     soundNext() {
       this.playTone(540, 880, 0.12, "sine");
     }
 
-      soundPrev() {
-        this.playTone(660, 440, 0.12, "sine");
-      }
     soundPrev() {
       this.playTone(660, 440, 0.12, "sine");
     }
 
-      soundAction() {
-        this.playTone(440, 980, 0.22, "triangle");
-      }
     soundAction() {
       this.playTone(440, 980, 0.22, "triangle");
     }
 
-      soundExit() {
-        this.playTone(400, 260, 0.16, "sine");
-      }
     soundExit() {
       this.playTone(400, 260, 0.16, "sine");
     }
 
-      // Initialize DOM Overlay & Bot Speech Modal
-      initDom() {
-        if (document.getElementById("tour-bot-root")) return;
     // Initialize DOM Overlay & Bot Speech Modal
     initDom() {
       if (document.getElementById("tour-bot-root")) return;
 
-        const root = document.createElement("div");
-        root.id = "tour-bot-root";
-        root.className = "tour-bot-root hidden";
       const root = document.createElement("div");
       root.id = "tour-bot-root";
       root.className = "tour-bot-root hidden";
 
-        root.innerHTML = `
       root.innerHTML = `
         <!-- Dark Backdrop with SVG Cutout Mask -->
         <svg id="tour-svg-mask" class="tour-svg-mask">
@@ -878,16 +629,13 @@
           <div class="voice-modal-header">
             <div class="flex items-center gap-2">
               <span class="text-sm">🎙️</span>
-              <span class="font-bold text-xs text-white mono">VOICE ENGINE SETTINGS</span>
               <span class="font-bold text-xs text-white mono">VOICE SETTINGS & PERSONAS</span>
             </div>
             <button id="voice-modal-btn-close" class="text-zinc-400 hover:text-white text-xs px-1" title="Close Settings">✕</button>
           </div>
-          <div class="p-3 space-y-3 text-xs">
           <div class="p-3 space-y-3 text-xs max-h-[85vh] overflow-y-auto">
             <!-- Voice Provider Select -->
             <div>
-              <label class="block text-[10px] text-zinc-400 uppercase mono font-semibold mb-1">Voice Provider</label>
               <label class="block text-[10px] text-zinc-400 uppercase mono font-semibold mb-1">Voice Engine</label>
               <div class="grid grid-cols-2 gap-2">
                 <button id="opt-provider-eleven" class="provider-pill p-2 rounded-lg text-center flex items-center justify-center gap-1.5">
@@ -896,22 +644,11 @@
                 </button>
                 <button id="opt-provider-webspeech" class="provider-pill p-2 rounded-lg text-center flex items-center justify-center gap-1.5">
                   <span>🗣️</span>
-                  <span>Web Speech</span>
                   <span>System Web Voice</span>
                 </button>
               </div>
             </div>
 
-            <!-- ElevenLabs Voice Dropdown -->
-            <div id="eleven-voice-group">
-              <label class="block text-[10px] text-zinc-400 uppercase mono font-semibold mb-1">ElevenLabs Neural Voice</label>
-              <select id="select-eleven-voice" class="w-full bg-zinc-900 border border-zinc-700 text-white rounded-lg p-2 text-xs focus:outline-none focus:border-white">
-                <option value="21m00Tcm4TlvDq8ikWAM">Rachel (Agent Q) — Crisp Cybersecurity AI</option>
-                <option value="pNInz6obpgDQGcFmaJgB">Adam — Deep Authoritative SOC Narrator</option>
-                <option value="ErXwobaYiN019PkySvjV">Antoni — Modern Tech Lead Voice</option>
-                <option value="EXAVITQu4vr4xnSDxMaL">Bella — Engaging Narrative Voice</option>
-                <option value="TxGEqnHWrfWFTfGW9XjX">Josh — Natural Engineering Tone</option>
-                <option value="JBFqnCBsd6RMkjVDRZzb">George — Articulate British Intelligence</option>
             <!-- Quick Voice Persona Presets -->
             <div>
               <label class="block text-[10px] text-zinc-400 uppercase mono font-semibold mb-1">Quick Voice Personas</label>
@@ -932,11 +669,6 @@
               </select>
             </div>
 
-            <!-- ElevenLabs API Key Input -->
-            <div id="eleven-key-group">
-              <div class="flex items-center justify-between mb-1">
-                <label class="text-[10px] text-zinc-400 uppercase mono font-semibold">ElevenLabs API Key</label>
-                <span class="text-[9px] text-zinc-500">(or set in .env)</span>
             <!-- Pitch and Speed Fine-Tuning Sliders -->
             <div class="space-y-2 pt-1 border-t border-zinc-800">
               <div>
@@ -946,13 +678,6 @@
                 </div>
                 <input type="range" id="slider-voice-pitch" min="0.6" max="1.4" step="0.02" value="0.88" class="voice-range-slider" />
               </div>
-              <div class="flex gap-2">
-                <input type="password" id="input-eleven-key" placeholder="xi-... (stored in browser)"
-                <input type="password" id="input-eleven-key" placeholder="sk_... (Secret API Key)"
-                  class="flex-1 bg-zinc-900 border border-zinc-700 text-white rounded-lg px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:border-white" />
-                <button id="btn-save-eleven-key" class="px-3 py-1.5 bg-white text-black font-bold rounded-lg text-xs hover:bg-zinc-200 transition shrink-0">
-                  Save
-                </button>
               <div>
                 <div class="flex items-center justify-between text-[10px] mono mb-1">
                   <span class="text-zinc-400 font-semibold uppercase">Speaking Speed</span>
@@ -960,8 +685,6 @@
                 </div>
                 <input type="range" id="slider-voice-rate" min="0.75" max="1.4" step="0.05" value="1.0" class="voice-range-slider" />
               </div>
-              <div id="eleven-key-status" class="mt-1 text-[10px] text-zinc-400 mono leading-tight">
-                Status: Checking connection...
             </div>
 
             <!-- ElevenLabs Configuration Group -->
@@ -999,41 +722,26 @@
             </div>
 
             <!-- Test Voice Sample Button -->
-            <div class="pt-1 flex items-center justify-between border-t border-zinc-800/80">
-              <button id="btn-test-voice" class="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs flex items-center gap-1.5 transition">
             <div class="pt-2 flex items-center justify-between border-t border-zinc-800">
               <button id="btn-test-voice" class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
                 <span>▶</span>
-                <span>Test Sample</span>
                 <span>Test Voice Sample</span>
               </button>
-              <span id="voice-sample-status" class="text-[10px] mono text-zinc-400"></span>
               <span id="voice-sample-status" class="text-[10px] mono text-emerald-400"></span>
             </div>
           </div>
         </div>
       `;
 
-        document.body.appendChild(root);
-        this.renderQuickLaunchPrompt();
-      }
       document.body.appendChild(root);
       this.renderQuickLaunchPrompt();
     }
 
-      // Floating welcome prompt for first-time visitors
-      renderQuickLaunchPrompt() {
-        const dismissed = localStorage.getItem("qds_tour_prompt_dismissed");
-        if (dismissed) return;
     // Floating welcome prompt for first-time visitors
     renderQuickLaunchPrompt() {
       const dismissed = localStorage.getItem("qds_tour_prompt_dismissed");
       if (dismissed) return;
 
-        const prompt = document.createElement("div");
-        prompt.id = "tour-welcome-prompt";
-        prompt.className = "tour-welcome-prompt";
-        prompt.innerHTML = `
       const prompt = document.createElement("div");
       prompt.id = "tour-welcome-prompt";
       prompt.className = "tour-welcome-prompt";
@@ -1054,44 +762,20 @@
           </button>
         </div>
       `;
-        document.body.appendChild(prompt);
       document.body.appendChild(prompt);
 
-        document.getElementById("prompt-btn-start")?.addEventListener("click", () => {
-          prompt.remove();
-          localStorage.setItem("qds_tour_prompt_dismissed", "true");
-          this.start();
-        });
       document.getElementById("prompt-btn-start")?.addEventListener("click", () => {
         prompt.remove();
         localStorage.setItem("qds_tour_prompt_dismissed", "true");
         this.start();
       });
 
-        document.getElementById("prompt-btn-dismiss")?.addEventListener("click", () => {
-          prompt.remove();
-          localStorage.setItem("qds_tour_prompt_dismissed", "true");
-        });
-      }
       document.getElementById("prompt-btn-dismiss")?.addEventListener("click", () => {
         prompt.remove();
         localStorage.setItem("qds_tour_prompt_dismissed", "true");
       });
     }
 
-      // Comprehensive 16-Step Walkthrough for Desktop SOC
-      getDesktopSteps() {
-        return [
-          {
-            id: "brand_posture",
-            tab: "cockpit",
-            target: "header",
-            category: "SYSTEM ARCHITECTURE",
-            title: "1. Brand & Post-Quantum SOC Posture",
-            speech: "Welcome to Quetzalcoatl! This is a state-of-the-art post-quantum Cyber Threat Detection SOC designed to interdict quantum forgery and eavesdropping on critical national infrastructure.",
-            calloutTitle: "INFORMATION-THEORETIC SECURITY",
-            calloutText: "Unlike classical signatures broken by Shor's algorithm, QDS relies on quantum mechanics: state measurements alter wave functions irreversibly (No-Cloning Theorem).",
-            placement: "bottom"
     // Comprehensive 16-Step Walkthrough for Desktop SOC
     getDesktopSteps() {
       return [
@@ -1152,16 +836,6 @@
           actionFn: () => {
             if (typeof window.simulateAttack === "function") window.simulateAttack('forgery');
           },
-          {
-            id: "session_telemetry",
-            tab: "cockpit",
-            target: "#ribbon-session-id",
-            category: "OPERATIONAL TELEMETRY",
-            title: "2. Live Session Freshness & Dual Thresholds",
-            speech: "Here is the active session identifier. In quantum key distribution, every signature sequence uses fresh, single-use Bell pairs. Notice our dual thresholds: sv = 6.0% (optical channel noise limit) and sa = 21.0% (security abort limit).",
-            calloutTitle: "DUAL THRESHOLD DERIVATION",
-            calloutText: "If quantum bit error rate e ≤ sv, signatures are verified authentic. If e > sa, the signature is aborted due to active eavesdropping.",
-            placement: "bottom"
           placement: "bottom"
         },
         {
@@ -1199,16 +873,6 @@
           actionFn: () => {
             if (typeof window.triggerSocialMission === "function") window.triggerSocialMission('healthcare_organ_dispatch');
           },
-          {
-            id: "merkle_root",
-            tab: "cockpit",
-            target: "#top-merkle-root",
-            category: "IMMUTABLE AUDIT",
-            title: "3. Blockchain-Anchored Merkle Root",
-            speech: "Every signature verdict is cryptographically hashed into an immutable Merkle tree. The top root hash shown here is anchored directly into an Ethereum smart contract for court-admissible audit proof.",
-            calloutTitle: "ZERO-TRUST VERIFICATION",
-            calloutText: "Any tampering with historical event logs invalidates the cryptographic root derivation immediately.",
-            placement: "bottom"
           placement: "top"
         },
         {
@@ -1224,16 +888,6 @@
           actionFn: () => {
             if (typeof window.signCustomDocument === "function") window.signCustomDocument();
           },
-          {
-            id: "mode_switcher",
-            tab: "cockpit",
-            target: ".mode-switcher",
-            category: "USER EXPERIENCE",
-            title: "4. Simple Mode vs SOC Analyst Mode",
-            speech: "Operators can toggle between Simple Mode (streamlined for executives and non-technical evaluators) and SOC Analyst Mode (unveiling deep mathematical formulas, Wald SPRT curves, and Hoeffding bounds).",
-            calloutTitle: "REAL-TIME ADAPTATION",
-            calloutText: "Clicking either mode instantly tailors the visual presentation without reloading data.",
-            placement: "bottom"
           placement: "top"
         },
         {
@@ -1249,156 +903,6 @@
           actionFn: () => {
             if (typeof window.simulateAttack === "function") window.simulateAttack('replay');
           },
-          {
-            id: "verdict_card",
-            tab: "cockpit",
-            target: "#sector-verdict",
-            category: "REAL-TIME VERDICT",
-            title: "5. Sector 01: Executive Security Verdict Cockpit",
-            speech: "This is Sector 01: The Verdict Cockpit. Our verification engine compares incoming states against Alice's keys. When clean, the verdict is ACCEPT. Under attack, it triggers an uncompromising BLOCK.",
-            calloutTitle: "ZERO TRUST BOUNDARY",
-            calloutText: "Fresh cryptographic nonces and sender identity certificates are verified alongside quantum error rates to prevent replay and impersonation.",
-            actionLabel: "⚡ Simulate Quantum Forgery Interdiction",
-            actionFn: () => {
-              if (typeof window.simulateAttack === "function") window.simulateAttack('forgery');
-            },
-            placement: "bottom"
-          },
-          {
-            id: "gauge",
-            tab: "cockpit",
-            target: "#error-rate-val",
-            category: "QUANTUM METRICS",
-            title: "6. Quantum Mismatch Radial Gauge (QBER)",
-            speech: "The radial gauge visualizes real-time Quantum Bit Error Rate (QBER). Under nominal conditions, errors remain below 4%. If an adversary tries to copy or measure the states, error spikes to ~34%, collapsing the state.",
-            calloutTitle: "NO-CLONING COLLAPSE",
-            calloutText: "Because quantum states cannot be cloned, an adversary's basis guess matches only 50% of the time, guaranteeing detectable disturbance on the remaining states.",
-            placement: "left"
-          },
-          {
-            id: "instant_actions",
-            tab: "cockpit",
-            target: "#instant-actions-panel",
-            category: "OPERATOR TOOLS",
-            title: "7. Instant Operator Action Triggers",
-            speech: "These quick buttons allow operators to test authentic quantum signatures, simulate quantum forgery attacks, or initialize fresh session keys with a single click.",
-            calloutTitle: "FAST INTERACTION",
-            calloutText: "Dispatches simulated Bell state measurements through the verification engine and updates the live ledger.",
-            placement: "left"
-          },
-          {
-            id: "missions",
-            tab: "cockpit",
-            target: "#sector-missions",
-            category: "SOCIAL IMPACT PROBLEM",
-            title: "8. Sector 02: National Mission Defense (Social Problems)",
-            speech: "See how our project solves high-stakes real-world social problems! Explore 3 critical national missions: Emergency Pediatric Organ Dispatch, SCADA Power Grid Shutdown, and $45M Flood Relief Sovereign Aid.",
-            calloutTitle: "CRITICAL INFRASTRUCTURE DEFENSE",
-            calloutText: "An unauthorized forged command to a power substation could trigger a blackout for 4.2 million citizens. QDS guarantees mathematical immutability.",
-            actionLabel: "⚡ Dispatch Organ Manifest Defense",
-            actionFn: () => {
-              if (typeof window.triggerSocialMission === "function") window.triggerSocialMission('healthcare_organ_dispatch');
-            },
-            placement: "top"
-          },
-          {
-            id: "signer",
-            tab: "cockpit",
-            target: "#sector-signer",
-            category: "INTERACTIVE PLAYGROUND",
-            title: "9. Sector 03: Custom Document Signer Playground",
-            speech: "You can sign custom high-value payloads in real-time! Type any clearance command, choose your quantum token count (50 to 500 Bell pairs), adjust fiber noise, and click 'Sign & Teleport Document'.",
-            calloutTitle: "BENNETT 1993 FEEDFORWARD",
-            calloutText: "Alice entangles the message qubit with an EPR pair, performs Bell State Measurement (BSM), and transmits 2 classical bits so Bob can apply the exact Pauli correction (I, X, Z, ZX).",
-            actionLabel: "⚡ Sign Custom Sovereign Order",
-            actionFn: () => {
-              if (typeof window.signCustomDocument === "function") window.signCustomDocument();
-            },
-            placement: "top"
-          },
-          {
-            id: "threats",
-            tab: "cockpit",
-            target: "#sector-threats",
-            category: "ATTACK LAB",
-            title: "10. Sector 04: Cyber Threat Simulation Lab (5 Vectors)",
-            speech: "Test our deterministic Attribution Engine across 5 cyber threat models! Trigger Intercept-Resend Forgery (~34% ERR), Channel Decoherence (~12% ERR), Stale Nonce Replay, Signer Impersonation, or Unauthorized Verifier tampering.",
-            calloutTitle: "DETERMINISTIC ATTRIBUTION",
-            calloutText: "Unlike black-box machine learning that can hallucinate, our engine uses strict rule-based physics and cryptographic proofs to classify the exact attack mechanism.",
-            actionLabel: "⚡ Interdict Stale Nonce Replay",
-            actionFn: () => {
-              if (typeof window.simulateAttack === "function") window.simulateAttack('replay');
-            },
-            placement: "top"
-          },
-          {
-            id: "evidence",
-            tab: "cockpit",
-            target: "#sector-evidence",
-            category: "STATISTICAL EVIDENCE",
-            title: "11. Sector 05: Scientific Statistical Evidence & Wald SPRT",
-            speech: "In SOC Analyst Mode, inspect the rigorous mathematics: Wald SPRT early-stopping terminates testing after only ~48 qubits (saving 74% of quantum resources), while Hoeffding bounds guarantee forgery bounds ≤ 1.42×10⁻⁶.",
-            calloutTitle: "TRIPLE-BASIS TOMOGRAPHY",
-            calloutText: "The chart displays match and mismatch distributions across Pauli Z, X, and Y measurement bases.",
-            placement: "top"
-          },
-          {
-            id: "tab_circuit",
-            tab: "circuit",
-            target: "#tab-circuit",
-            category: "QUANTUM CIRCUITS",
-            title: "12. Tab 2: 3-Qubit Bennett Teleportation Circuit Lab",
-            speech: "Let's inspect the teleportation circuit! Here is an exact step-by-step visualizer of Bennett 1993: input state |ψ⟩, EPR Bell pair generation (|Φ+⟩), Bell State Measurement (BSM), classical feedforward bits, and Bob's Pauli correction.",
-            calloutTitle: "ZERO QUANTUM CHANNEL TRANSMISSION",
-            calloutText: "Reconstruction fidelity exceeds 99.9% without ever transmitting the quantum signature state through a physical wire.",
-            placement: "bottom"
-          },
-          {
-            id: "tab_matrix",
-            tab: "matrix",
-            target: "#tab-matrix",
-            category: "THREAT MODELING",
-            title: "13. Tab 3: Attack Comparison Matrix",
-            speech: "The Attack Matrix provides a comprehensive side-by-side comparison of all 5 threat models against nominal conditions, detailing QBER signatures, entropy shifts, and cryptographic impact.",
-            calloutTitle: "EVALUATION RUBRIC",
-            calloutText: "Provides auditors and judges with complete clarity on how quantum physics distinguishes malicious attacks from physical decoherence.",
-            placement: "bottom"
-          },
-          {
-            id: "tab_experiments",
-            tab: "experiments",
-            target: "#tab-experiments",
-            category: "MONTE CARLO TESTING",
-            title: "14. Tab 4: Monte Carlo Batch Benchmark Engine",
-            speech: "Run automated Monte Carlo batches of 30 to 100 trials to measure empirical False Acceptance Rate (FAR = 0.00%) and False Rejection Rate (FRR = 0.00%) with millisecond latency benchmarking.",
-            calloutTitle: "STATISTICAL RIGOR",
-            calloutText: "Validates high-throughput performance and statistical robustness under varying optical disturbance.",
-            placement: "bottom"
-          },
-          {
-            id: "tab_audit",
-            tab: "audit",
-            target: "#tab-audit",
-            category: "FORENSIC INTEGRITY",
-            title: "15. Tab 5: Tamper-Evident Merkle Audit Ledger",
-            speech: "Here is the forensic audit ledger! Every event has a cryptographic leaf hash. You can click 'Inspect Proof' to trace the Merkle sibling path, or click 'Simulate Tampering' to watch modified records get quarantined.",
-            calloutTitle: "IMMUTABLE AUDIT CHAIN",
-            calloutText: "Guarantees that once a signature verdict is registered, no insider or attacker can silently alter the log.",
-            placement: "bottom"
-          },
-          {
-            id: "tab_arbitration",
-            tab: "multi-party",
-            target: "#tab-multi-party",
-            category: "NON-REPUDIATION",
-            title: "16. Tab 6: Multi-Party Non-Repudiation Arbitration",
-            speech: "Zeng-Christoph arbitration guarantees non-repudiation: Alice cannot sign an order for Bob and later deny it when Bob forwards it to Charlie. If Alice sends conflicting keys, Charlie detects the gap (|e_B - e_C| > 10%) and blocks transfer.",
-            calloutTitle: "NON-REPUDIATION THEOREM",
-            calloutText: "Guarantees cross-agency document validity without requiring a centralized, trusted third-party arbiter.",
-            placement: "bottom"
-          }
-        ];
-      }
           placement: "top"
         },
         {
@@ -1470,61 +974,6 @@
       ];
     }
 
-      // Step Definitions for Mobile / Minimal View
-      getMobileSteps() {
-        return [
-          {
-            id: "mob-welcome",
-            target: "#hdr-title",
-            category: "MOBILE BRIEFING",
-            title: "1. Quetzalcoatl Ultra-Minimal Mobile SPA",
-            speech: "Welcome to the ultra-minimal mobile view! Designed for field security officers to inspect quantum signature verifications on smartphones and tablets.",
-            calloutTitle: "STANDALONE HYBRID ARCHITECTURE",
-            calloutText: "Functions completely standalone in offline field environments or automatically syncs with the central SOC server when connected.",
-            placement: "bottom"
-          },
-          {
-            id: "mob-pipeline",
-            target: "#pipeline-stepper",
-            category: "PIPELINE ENGINE",
-            title: "2. 4-Stage Teleportation Pipeline",
-            speech: "Tap through the 4 core stages of quantum signing: 1. Session Initialization, 2. Nonce Generation, 3. Bell State Teleportation, and 4. Measurement & Verification.",
-            calloutTitle: "CIRCUIT RECONSTRUCTION",
-            calloutText: "Each stage updates the classical feedforward bits and applies the required Pauli correction matrix.",
-            placement: "bottom"
-          },
-          {
-            id: "mob-vectors",
-            target: "#vector-buttons",
-            category: "ATTACK VECTORS",
-            title: "3. Field Threat Simulation Vectors",
-            speech: "Quickly toggle between Nominal baseline, Quantum Forgery (~34% QBER), Channel Decoherence Noise, and Replay vectors to test the mobile detection engine.",
-            calloutTitle: "INSTANT DECISION",
-            calloutText: "The mobile cockpit renders immediate ACCEPT, ALERT, or BLOCK status badges with vibration and audio cues.",
-            placement: "top"
-          },
-          {
-            id: "mob-missions",
-            target: "#social-missions-panel",
-            category: "SOCIAL IMPACT MISSIONS",
-            title: "4. Emergency Social Problem Scenarios",
-            speech: "Inspect how emergency organ dispatch (#HRT-2026) and SCADA power grid commands are secured against tampering in life-critical field operations.",
-            calloutTitle: "REAL-TIME IMPACT",
-            calloutText: "Each mission details the specific citizen lives or infrastructure gigawatts protected by quantum physics.",
-            placement: "top"
-          },
-          {
-            id: "mob-ledger",
-            target: "#view-ledger",
-            category: "MERKLE AUDIT",
-            title: "5. Immutable Forensic Ledger",
-            speech: "Every signature verdict is cryptographically hashed into an append-only Merkle tree and anchored to the blockchain for non-repudiation and court-admissible audit trails.",
-            calloutTitle: "TAMPER EVIDENT",
-            calloutText: "Any unauthorized modification to historical records invalidates the Merkle root hash instantly.",
-            placement: "top"
-          }
-        ];
-      }
     // Step Definitions for Mobile / Minimal View
     getMobileSteps() {
       return [
@@ -1581,34 +1030,14 @@
       ];
     }
 
-      getSteps() {
-        const isMinimal = window.location.pathname.includes("minimal") ||
-          window.location.pathname.includes("mobile") ||
-          document.getElementById("pipeline-stepper") !== null;
     getSteps() {
       const isMinimal = window.location.pathname.includes("minimal") ||
         window.location.pathname.includes("mobile") ||
         document.getElementById("pipeline-stepper") !== null;
 
-        return isMinimal ? this.getMobileSteps() : this.getDesktopSteps();
-      }
       return isMinimal ? this.getMobileSteps() : this.getDesktopSteps();
     }
 
-      // Bind Controls & Global Hotkeys
-      bindEvents() {
-        document.getElementById("tour-btn-close")?.addEventListener("click", () => this.stop());
-        document.getElementById("tour-btn-next")?.addEventListener("click", () => {
-          this.next();
-        });
-        document.getElementById("tour-btn-prev")?.addEventListener("click", () => {
-          this.prev();
-        });
-        document.getElementById("tour-btn-voice")?.addEventListener("click", () => this.toggleVoice());
-        document.getElementById("tour-btn-voice-settings")?.addEventListener("click", () => this.toggleVoiceSettings());
-        document.getElementById("voice-modal-btn-close")?.addEventListener("click", () => this.toggleVoiceSettings());
-        document.getElementById("tour-btn-mute")?.addEventListener("click", () => this.toggleMute());
-        document.getElementById("tour-btn-autoplay")?.addEventListener("click", () => this.toggleAutoPlay());
     // Bind Controls & Global Hotkeys
     bindEvents() {
       document.getElementById("tour-btn-close")?.addEventListener("click", () => this.stop());
@@ -1624,27 +1053,6 @@
       document.getElementById("tour-btn-mute")?.addEventListener("click", () => this.toggleMute());
       document.getElementById("tour-btn-autoplay")?.addEventListener("click", () => this.toggleAutoPlay());
 
-        // ElevenLabs Voice Settings Controls
-        document.getElementById("opt-provider-eleven")?.addEventListener("click", () => {
-          this.setVoiceEngine("elevenlabs");
-        });
-        document.getElementById("opt-provider-webspeech")?.addEventListener("click", () => {
-          this.setVoiceEngine("webspeech");
-        });
-        document.getElementById("select-eleven-voice")?.addEventListener("change", (e) => {
-          this.elevenVoiceId = e.target.value;
-          localStorage.setItem("qds_tour_eleven_voice", this.elevenVoiceId);
-        });
-        document.getElementById("btn-save-eleven-key")?.addEventListener("click", () => {
-          const input = document.getElementById("input-eleven-key");
-          this.elevenApiKey = (input?.value || "").trim();
-          localStorage.setItem("qds_tour_eleven_key", this.elevenApiKey);
-          this.checkElevenStatus();
-          this.showVoiceNotification("ElevenLabs API key saved.", "success");
-        });
-        document.getElementById("btn-test-voice")?.addEventListener("click", () => {
-          this.testVoiceSample();
-        });
       // Voice Engine Selection Controls
       document.getElementById("opt-provider-eleven")?.addEventListener("click", () => {
         this.setVoiceEngine("elevenlabs");
@@ -1653,13 +1061,6 @@
         this.setVoiceEngine("webspeech");
       });
 
-        // Global Keyboard Hotkeys
-        window.addEventListener("keydown", (e) => {
-          // [T] toggles tour if not typing in an input
-          if ((e.key === "t" || e.key === "T") && !["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) {
-            e.preventDefault();
-            this.toggle();
-            return;
       // System Voice Dropdown
       document.getElementById("select-web-voice")?.addEventListener("change", (e) => {
         const name = e.target.value;
@@ -1675,27 +1076,6 @@
         }
       });
 
-          if (!this.isActive) return;
-
-          if (e.key === "ArrowRight" || e.key === "Enter") {
-            e.preventDefault();
-            this.next();
-          } else if (e.key === "ArrowLeft") {
-            e.preventDefault();
-            this.prev();
-          } else if (e.key === "Escape") {
-            e.preventDefault();
-            this.stop();
-          } else if (e.key === " " || e.key === "Spacebar") {
-            e.preventDefault();
-            this.toggleAutoPlay();
-          } else if (e.key === "v" || e.key === "V") {
-            e.preventDefault();
-            this.toggleVoice();
-          } else if (e.key === "m" || e.key === "M") {
-            e.preventDefault();
-            this.toggleMute();
-          }
       // Quick Voice Persona Presets
       document.querySelectorAll(".voice-persona-btn").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -1704,14 +1084,6 @@
         });
       });
 
-        // Window resize / scroll repositioning
-        window.addEventListener("resize", () => {
-          if (this.isActive) this.positionOnTarget();
-        });
-        window.addEventListener("scroll", () => {
-          if (this.isActive) this.positionOnTarget();
-        }, { passive: true });
-      }
       // Pitch & Rate Fine-Tuning Sliders
       const pitchSlider = document.getElementById("slider-voice-pitch");
       pitchSlider?.addEventListener("input", (e) => {
@@ -1726,11 +1098,6 @@
         this.testVoiceSample();
       });
 
-      // Start Guided Tour (Defaults to Auto-Play without clicking anything)
-      start(stepIndex = 0) {
-        this.isActive = true;
-        this.currentStep = stepIndex;
-        this.isAutoPlaying = true; // Auto-play enabled immediately!
       const rateSlider = document.getElementById("slider-voice-rate");
       rateSlider?.addEventListener("input", (e) => {
         this.voiceRate = parseFloat(e.target.value);
@@ -1742,8 +1109,6 @@
         this.testVoiceSample();
       });
 
-        const root = document.getElementById("tour-bot-root");
-        if (root) root.classList.remove("hidden");
       // ElevenLabs Voice Dropdown & Key
       document.getElementById("select-eleven-voice")?.addEventListener("change", (e) => {
         this.elevenVoiceId = e.target.value;
@@ -1761,9 +1126,6 @@
         this.testVoiceSample();
       });
 
-        // Dismiss any open tooltip
-        const tt = document.getElementById("quantum-tooltip");
-        if (tt) tt.classList.remove("active");
       // Global Keyboard Hotkeys
       window.addEventListener("keydown", (e) => {
         // [T] toggles tour if not typing in an input
@@ -1773,17 +1135,8 @@
           return;
         }
 
-        this.soundNext();
-        this.updateVoiceUi();
-        this.renderCurrentStep();
-        this.startCountdownTimer();
-      }
         if (!this.isActive) return;
 
-      stop() {
-        this.isActive = false;
-        this.stopSpeaking();
-        this.stopCountdownTimer();
         if (e.key === "ArrowRight" || e.key === "Enter") {
           e.preventDefault();
           this.next();
@@ -1805,8 +1158,6 @@
         }
       });
 
-        const modal = document.getElementById("tour-voice-settings-modal");
-        if (modal) modal.classList.add("hidden");
       // Window resize / scroll repositioning
       window.addEventListener("resize", () => {
         if (this.isActive) this.positionOnTarget();
@@ -1816,33 +1167,19 @@
       }, { passive: true });
     }
 
-        const root = document.getElementById("tour-bot-root");
-        if (root) root.classList.add("hidden");
     // Start Guided Tour (Defaults to Auto-Play without clicking anything)
     start(stepIndex = 0) {
       this.isActive = true;
       this.currentStep = stepIndex;
       this.isAutoPlaying = true; // Auto-play enabled immediately!
 
-        // Reset to cockpit tab on exit
-        if (typeof window.switchTab === "function") {
-          window.switchTab("cockpit");
-        }
       const root = document.getElementById("tour-bot-root");
       if (root) root.classList.remove("hidden");
 
-        this.soundExit();
-      }
       // Dismiss any open tooltip
       const tt = document.getElementById("quantum-tooltip");
       if (tt) tt.classList.remove("active");
 
-      toggle() {
-        if (this.isActive) {
-          this.stop();
-        } else {
-          this.start();
-        }
       this.soundNext();
       this.updateVoiceUi();
       this.renderCurrentStep();
@@ -1865,22 +1202,6 @@
         window.switchTab("cockpit");
       }
 
-      next() {
-        this.stopSpeaking();
-        this.stopCountdownTimer();
-        const steps = this.getSteps();
-        if (this.currentStep < steps.length - 1) {
-          this.currentStep++;
-          this.soundNext();
-          this.renderCurrentStep();
-          if (this.isAutoPlaying) this.startCountdownTimer();
-        } else {
-          // Tour completed
-          this.stop();
-          if (typeof window.showToast === "function") {
-            window.showToast("success", "Tour Complete", "You have completed the full Quetzalcoatl SOC walkthrough!");
-          }
-        }
       this.soundExit();
     }
 
@@ -1892,14 +1213,6 @@
       }
     }
 
-      prev() {
-        this.stopSpeaking();
-        this.stopCountdownTimer();
-        if (this.currentStep > 0) {
-          this.currentStep--;
-          this.soundPrev();
-          this.renderCurrentStep();
-          if (this.isAutoPlaying) this.startCountdownTimer();
     next() {
       this.stopSpeaking();
       this.stopCountdownTimer();
@@ -1918,12 +1231,6 @@
       }
     }
 
-      toggleMute() {
-        this.isMuted = !this.isMuted;
-        localStorage.setItem("qds_tour_muted", this.isMuted.toString());
-        const icon = document.getElementById("tour-mute-icon");
-        if (icon) icon.textContent = this.isMuted ? '🔇' : '🔊';
-        if (!this.isMuted) this.playTone(600, 900, 0.12);
     prev() {
       this.stopSpeaking();
       this.stopCountdownTimer();
@@ -1935,34 +1242,6 @@
       }
     }
 
-      toggleAutoPlay() {
-        if (this.isAutoPlaying) {
-          this.isAutoPlaying = false;
-          this.stopCountdownTimer();
-          if (this.speechTimeoutId) {
-            clearTimeout(this.speechTimeoutId);
-            this.speechTimeoutId = null;
-          }
-          if (this.audioPlayer && !this.audioPlayer.paused) {
-            this.audioPlayer.pause();
-          }
-          if (this.isSpeaking && 'speechSynthesis' in window) {
-            window.speechSynthesis.pause();
-          }
-          this.updateAutoPlayUi(false);
-        } else {
-          this.isAutoPlaying = true;
-          this.updateAutoPlayUi(true);
-          if (this.audioPlayer && this.audioPlayer.src && this.audioPlayer.paused && this.audioPlayer.currentTime > 0) {
-            this.audioPlayer.play().catch(() => { });
-          } else if ('speechSynthesis' in window && window.speechSynthesis.paused) {
-            window.speechSynthesis.resume();
-          } else if (!this.isSpeaking && this.voiceEnabled) {
-            const steps = this.getSteps();
-            const step = steps[this.currentStep];
-            if (step) this.speakStep(step.speech);
-          }
-          this.startCountdownTimer();
     toggleMute() {
       this.isMuted = !this.isMuted;
       localStorage.setItem("qds_tour_muted", this.isMuted.toString());
@@ -2002,42 +1281,22 @@
       }
     }
 
-      startCountdownTimer() {
-        this.stopCountdownTimer();
-        if (!this.isAutoPlaying || !this.isActive) return;
     startCountdownTimer() {
       this.stopCountdownTimer();
       if (!this.isAutoPlaying || !this.isActive) return;
 
-        this.timerStart = performance.now();
       this.timerStart = performance.now();
 
-        const tick = (now) => {
-          if (!this.isAutoPlaying || !this.isActive) return;
       const tick = (now) => {
         if (!this.isAutoPlaying || !this.isActive) return;
 
-          const elapsed = now - this.timerStart;
-          const remaining = Math.max(0, this.stepDuration - elapsed);
-          const pct = (remaining / this.stepDuration) * 100;
         const elapsed = now - this.timerStart;
         const remaining = Math.max(0, this.stepDuration - elapsed);
         const pct = (remaining / this.stepDuration) * 100;
 
-          const bar = document.getElementById("tour-countdown-bar");
-          const val = document.getElementById("tour-countdown-val");
         const bar = document.getElementById("tour-countdown-bar");
         const val = document.getElementById("tour-countdown-val");
 
-          if (bar) bar.style.width = `${pct}%`;
-          if (val) {
-            if (this.isSpeaking) {
-              val.textContent = "Speaking...";
-            } else if (this.speechTimeoutId) {
-              val.textContent = "Advancing...";
-            } else {
-              val.textContent = `${(remaining / 1000).toFixed(1)}s`;
-            }
         if (bar) bar.style.width = `${pct}%`;
         if (val) {
           if (this.isSpeaking) {
@@ -2049,12 +1308,6 @@
           }
         }
 
-          if (elapsed >= this.stepDuration) {
-            // If Agent Q is currently speaking or queued to advance, let speech complete naturally
-            if (this.isSpeaking || this.speechTimeoutId) {
-              this.animFrameId = requestAnimationFrame(tick);
-              return;
-            }
         if (elapsed >= this.stepDuration) {
           // If Agent Q is currently speaking or queued to advance, let speech complete naturally
           if (this.isSpeaking || this.speechTimeoutId) {
@@ -2062,26 +1315,17 @@
             return;
           }
 
-            const steps = this.getSteps();
-            if (this.currentStep < steps.length - 1) {
-              this.next();
-            } else {
-              this.stop();
-            }
           const steps = this.getSteps();
           if (this.currentStep < steps.length - 1) {
             this.next();
           } else {
-            this.animFrameId = requestAnimationFrame(tick);
             this.stop();
           }
-        };
         } else {
           this.animFrameId = requestAnimationFrame(tick);
         }
       };
 
-        this.animFrameId = requestAnimationFrame(tick);
       this.animFrameId = requestAnimationFrame(tick);
     }
 
@@ -2092,11 +1336,6 @@
       }
     }
 
-      stopCountdownTimer() {
-        if (this.animFrameId) {
-          cancelAnimationFrame(this.animFrameId);
-          this.animFrameId = null;
-        }
     updateAutoPlayUi(isPlaying) {
       const icon = document.getElementById("tour-autoplay-icon");
       const label = document.getElementById("tour-autoplay-label");
@@ -2119,74 +1358,35 @@
       }
     }
 
-      updateAutoPlayUi(isPlaying) {
-        const icon = document.getElementById("tour-autoplay-icon");
-        const label = document.getElementById("tour-autoplay-label");
-        const statusBadge = document.getElementById("tour-auto-status");
-        const btn = document.getElementById("tour-btn-autoplay");
-        const countWrapper = document.querySelector(".tour-countdown-wrapper");
     renderCurrentStep() {
       const steps = this.getSteps();
       const step = steps[this.currentStep];
       if (!step) return;
 
-        if (isPlaying) {
-          if (icon) icon.textContent = "⏸";
-          if (label) label.textContent = "Pause";
-          if (statusBadge) statusBadge.textContent = "AUTOMATED TOUR";
-          if (btn) btn.classList.add("active");
-          if (countWrapper) countWrapper.style.opacity = "1";
-        } else {
-          if (icon) icon.textContent = "▶";
-          if (label) label.textContent = "Resume";
-          if (statusBadge) statusBadge.textContent = "PAUSED";
-          if (btn) btn.classList.remove("active");
-          if (countWrapper) countWrapper.style.opacity = "0.4";
-        }
       // Automatically switch to correct tab if step requires it!
       if (step.tab && typeof window.switchTab === "function") {
         window.switchTab(step.tab);
       }
 
-      renderCurrentStep() {
-        const steps = this.getSteps();
-        const step = steps[this.currentStep];
-        if (!step) return;
       // 1. Update Indicators
       const ind = document.getElementById("tour-step-indicator");
       if (ind) ind.textContent = `STEP ${this.currentStep + 1} OF ${steps.length}`;
 
-        // Automatically switch to correct tab if step requires it!
-        if (step.tab && typeof window.switchTab === "function") {
-          window.switchTab(step.tab);
-        }
       const prog = document.getElementById("tour-progress-bar");
       if (prog) {
         const pct = ((this.currentStep + 1) / steps.length) * 100;
         prog.style.width = `${pct}%`;
       }
 
-        // 1. Update Indicators
-        const ind = document.getElementById("tour-step-indicator");
-        if (ind) ind.textContent = `STEP ${this.currentStep + 1} OF ${steps.length}`;
       const cat = document.getElementById("tour-category-pill");
       if (cat) cat.textContent = step.category || "OPERATIONAL TELEMETRY";
 
-        const prog = document.getElementById("tour-progress-bar");
-        if (prog) {
-          const pct = ((this.currentStep + 1) / steps.length) * 100;
-          prog.style.width = `${pct}%`;
-        }
       const title = document.getElementById("tour-step-title");
       if (title) title.textContent = step.title;
 
-        const cat = document.getElementById("tour-category-pill");
-        if (cat) cat.textContent = step.category || "OPERATIONAL TELEMETRY";
       const speech = document.getElementById("tour-speech-text");
       if (speech) speech.textContent = step.speech;
 
-        const title = document.getElementById("tour-step-title");
-        if (title) title.textContent = step.title;
       // 2. Callout Box
       const calloutBox = document.getElementById("tour-callout-box");
       const calloutTitle = document.getElementById("tour-callout-title");
@@ -2199,8 +1399,6 @@
         if (calloutBox) calloutBox.classList.add("hidden");
       }
 
-        const speech = document.getElementById("tour-speech-text");
-        if (speech) speech.textContent = step.speech;
       // 3. Optional Live Action Button
       const actionContainer = document.getElementById("tour-action-container");
       const actionLabel = document.getElementById("tour-action-label");
@@ -2209,17 +1407,6 @@
         if (actionContainer) actionContainer.classList.remove("hidden");
         if (actionLabel) actionLabel.textContent = step.actionLabel;
 
-        // 2. Callout Box
-        const calloutBox = document.getElementById("tour-callout-box");
-        const calloutTitle = document.getElementById("tour-callout-title");
-        const calloutText = document.getElementById("tour-callout-text");
-        if (step.calloutText) {
-          if (calloutBox) calloutBox.classList.remove("hidden");
-          if (calloutTitle) calloutTitle.textContent = step.calloutTitle || "QUANTUM PROTOCOL BASIS";
-          if (calloutText) calloutText.textContent = step.calloutText;
-        } else {
-          if (calloutBox) calloutBox.classList.add("hidden");
-        }
         const newBtn = actionBtn.cloneNode(true);
         actionBtn.parentNode.replaceChild(newBtn, actionBtn);
         newBtn.addEventListener("click", () => {
@@ -2230,13 +1417,6 @@
         if (actionContainer) actionContainer.classList.add("hidden");
       }
 
-        // 3. Optional Live Action Button
-        const actionContainer = document.getElementById("tour-action-container");
-        const actionLabel = document.getElementById("tour-action-label");
-        const actionBtn = document.getElementById("tour-btn-live-action");
-        if (step.actionFn && step.actionLabel) {
-          if (actionContainer) actionContainer.classList.remove("hidden");
-          if (actionLabel) actionLabel.textContent = step.actionLabel;
       // 4. Update Prev / Next Buttons
       const prevBtn = document.getElementById("tour-btn-prev");
       if (prevBtn) {
@@ -2244,74 +1424,39 @@
         prevBtn.style.opacity = this.currentStep === 0 ? "0.4" : "1";
       }
 
-          const newBtn = actionBtn.cloneNode(true);
-          actionBtn.parentNode.replaceChild(newBtn, actionBtn);
-          newBtn.addEventListener("click", () => {
-            this.soundAction();
-            step.actionFn();
-          });
-        } else {
-          if (actionContainer) actionContainer.classList.add("hidden");
-        }
       const nextBtn = document.getElementById("tour-btn-next");
       if (nextBtn) {
         nextBtn.textContent = this.currentStep === steps.length - 1 ? "Complete ✓" : "Next ➔";
       }
 
-        // 4. Update Prev / Next Buttons
-        const prevBtn = document.getElementById("tour-btn-prev");
-        if (prevBtn) {
-          prevBtn.disabled = this.currentStep === 0;
-          prevBtn.style.opacity = this.currentStep === 0 ? "0.4" : "1";
-        }
       this.updateAutoPlayUi(this.isAutoPlaying);
 
-        const nextBtn = document.getElementById("tour-btn-next");
-        if (nextBtn) {
-          nextBtn.textContent = this.currentStep === steps.length - 1 ? "Complete ✓" : "Next ➔";
-        }
       // 5. Position spotlight and dialog over target element
       this.positionOnTarget();
 
-        this.updateAutoPlayUi(this.isAutoPlaying);
       // 6. Speak out loud with realistic voice synthesis!
       this.speakStep(step.speech);
 
-        // 5. Position spotlight and dialog over target element
-        this.positionOnTarget();
       // Dynamically match step duration to speech length
       const words = (step.speech || "").split(/\s+/).filter(Boolean).length;
       const dynamicSec = this.voiceEnabled ? Math.max(6.5, (words / 2.6) + 1.2) : 6.5;
       this.stepDuration = dynamicSec * 1000;
     }
 
-        // 6. Speak out loud with realistic voice synthesis!
-        this.speakStep(step.speech);
     positionOnTarget() {
       const steps = this.getSteps();
       const step = steps[this.currentStep];
       if (!step) return;
 
-        // Dynamically match step duration to speech length
-        const words = (step.speech || "").split(/\s+/).filter(Boolean).length;
-        const dynamicSec = this.voiceEnabled ? Math.max(6.5, (words / 2.6) + 1.2) : 6.5;
-        this.stepDuration = dynamicSec * 1000;
       let el = null;
       if (step.target) {
         el = document.querySelector(step.target);
       }
 
-      positionOnTarget() {
-        const steps = this.getSteps();
-        const step = steps[this.currentStep];
-        if (!step) return;
       const maskHole = document.getElementById("tour-mask-hole");
       const focusFrame = document.getElementById("tour-focus-frame");
       const dialog = document.getElementById("tour-bot-dialog");
 
-        let el = null;
-        if (step.target) {
-          el = document.querySelector(step.target);
       if (!el) {
         if (maskHole) {
           maskHole.setAttribute("width", "0");
@@ -2326,9 +1471,6 @@
         return;
       }
 
-        const maskHole = document.getElementById("tour-mask-hole");
-        const focusFrame = document.getElementById("tour-focus-frame");
-        const dialog = document.getElementById("tour-bot-dialog");
       // Smoothly scroll target element into viewport center
       const rect = el.getBoundingClientRect();
       const isVisible = rect.top >= 80 && rect.bottom <= window.innerHeight - 80;
@@ -2336,18 +1478,6 @@
         el.scrollIntoView({ behavior: "smooth", block: "center" });
       }
 
-        if (!el) {
-          if (maskHole) {
-            maskHole.setAttribute("width", "0");
-            maskHole.setAttribute("height", "0");
-          }
-          if (focusFrame) focusFrame.style.display = "none";
-          if (dialog) {
-            dialog.style.top = "50%";
-            dialog.style.left = "50%";
-            dialog.style.transform = "translate(-50%, -50%)";
-          }
-          return;
       setTimeout(() => {
         const updatedRect = el.getBoundingClientRect();
         const pad = 10;
@@ -2364,11 +1494,6 @@
           maskHole.setAttribute("height", h);
         }
 
-        // Smoothly scroll target element into viewport center
-        const rect = el.getBoundingClientRect();
-        const isVisible = rect.top >= 80 && rect.bottom <= window.innerHeight - 80;
-        if (!isVisible) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
         // 2. Update Focus Frame
         if (focusFrame) {
           focusFrame.style.display = "block";
@@ -2378,35 +1503,14 @@
           focusFrame.style.height = `${h}px`;
         }
 
-        setTimeout(() => {
-          const updatedRect = el.getBoundingClientRect();
-          const pad = 10;
-          const x = Math.max(0, updatedRect.left - pad);
-          const y = Math.max(0, updatedRect.top - pad);
-          const w = updatedRect.width + pad * 2;
-          const h = updatedRect.height + pad * 2;
         // 3. Position Conversational Bot Dialog
         if (dialog) {
           const dialogWidth = Math.min(window.innerWidth - 32, 440);
           const dialogHeight = 400; // Estimated height
           const margin = 16;
 
-          // 1. Update SVG mask hole cutout
-          if (maskHole) {
-            maskHole.setAttribute("x", x);
-            maskHole.setAttribute("y", y);
-            maskHole.setAttribute("width", w);
-            maskHole.setAttribute("height", h);
-          }
           let topPos, leftPos;
 
-          // 2. Update Focus Frame
-          if (focusFrame) {
-            focusFrame.style.display = "block";
-            focusFrame.style.top = `${y}px`;
-            focusFrame.style.left = `${x}px`;
-            focusFrame.style.width = `${w}px`;
-            focusFrame.style.height = `${h}px`;
           // On mobile screens (< 640px), dock dialog at bottom
           if (window.innerWidth < 640) {
             dialog.style.top = "auto";
@@ -2417,62 +1521,23 @@
             return;
           }
 
-          // 3. Position Conversational Bot Dialog
-          if (dialog) {
-            const dialogWidth = Math.min(window.innerWidth - 32, 440);
-            const dialogHeight = 400; // Estimated height
-            const margin = 16;
           // Desktop positioning: Place below if room, else above
           const spaceBelow = window.innerHeight - (y + h);
           const spaceAbove = y;
 
-            let topPos, leftPos;
           if (spaceBelow >= dialogHeight || spaceBelow >= spaceAbove) {
             topPos = y + h + margin;
           } else {
             topPos = Math.max(margin, y - dialogHeight - margin);
           }
 
-            // On mobile screens (< 640px), dock dialog at bottom
-            if (window.innerWidth < 640) {
-              dialog.style.top = "auto";
-              dialog.style.bottom = "16px";
-              dialog.style.left = "16px";
-              dialog.style.right = "16px";
-              dialog.style.transform = "none";
-              return;
-            }
           // Clamp top position inside window
           topPos = Math.max(margin, Math.min(window.innerHeight - dialogHeight - margin, topPos));
 
-            // Desktop positioning: Place below if room, else above
-            const spaceBelow = window.innerHeight - (y + h);
-            const spaceAbove = y;
           // Center horizontally relative to target element
           leftPos = x + (w / 2) - (dialogWidth / 2);
           leftPos = Math.max(margin, Math.min(window.innerWidth - dialogWidth - margin, leftPos));
 
-            if (spaceBelow >= dialogHeight || spaceBelow >= spaceAbove) {
-              topPos = y + h + margin;
-            } else {
-              topPos = Math.max(margin, y - dialogHeight - margin);
-            }
-
-            // Clamp top position inside window
-            topPos = Math.max(margin, Math.min(window.innerHeight - dialogHeight - margin, topPos));
-
-            // Center horizontally relative to target element
-            leftPos = x + (w / 2) - (dialogWidth / 2);
-            leftPos = Math.max(margin, Math.min(window.innerWidth - dialogWidth - margin, leftPos));
-
-            dialog.style.top = `${topPos}px`;
-            dialog.style.left = `${leftPos}px`;
-            dialog.style.bottom = "auto";
-            dialog.style.right = "auto";
-            dialog.style.transform = "none";
-          }
-        }, 60);
-      }
           dialog.style.top = `${topPos}px`;
           dialog.style.left = `${leftPos}px`;
           dialog.style.bottom = "auto";
@@ -2484,7 +1549,15 @@
   }
 
   // Initialize and attach to global window
-  document.addEventListener("DOMContentLoaded", () => {
-    window.QuetzalcoatlTour = new QuetzalcoatlTour();
-  });
+  function initTourInstance() {
+    if (!window.QuetzalcoatlTour) {
+      window.QuetzalcoatlTour = new QuetzalcoatlTour();
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initTourInstance);
+  } else {
+    initTourInstance();
+  }
 })();
