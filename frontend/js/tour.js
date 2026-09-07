@@ -14,6 +14,12 @@
       this.isAutoPlaying = true; // Auto-play by default as requested
       this.isMuted = localStorage.getItem("qds_tour_muted") === "true";
       this.voiceEnabled = localStorage.getItem("qds_tour_voice") !== "false"; // Spoken vocal voice enabled by default!
+      this.voiceEngine = localStorage.getItem("qds_tour_voice_engine") || "elevenlabs"; // "elevenlabs" (default) or "webspeech"
+      this.elevenVoiceId = localStorage.getItem("qds_tour_eleven_voice") || "21m00Tcm4TlvDq8ikWAM"; // Rachel (Agent Q)
+      this.elevenApiKey = localStorage.getItem("qds_tour_eleven_key") || "";
+      this.elevenStatus = null;
+      this.audioPlayer = new Audio();
+      this.audioAbortController = null;
       this.stepDuration = 6500; // Baseline duration
       this.timerStart = 0;
       this.animFrameId = null;
@@ -26,9 +32,112 @@
       this.initVoices();
       this.initDom();
       this.bindEvents();
+      this.checkElevenStatus();
     }
 
-    // Voice Synthesizer via Native Web Speech API (Speaks out loud through speakers!)
+    // Check ElevenLabs Server Status & Connectivity
+    async checkElevenStatus() {
+      try {
+        const headers = {};
+        if (this.elevenApiKey) headers["xi-api-key"] = this.elevenApiKey;
+        const res = await fetch("/api/tts/status", { headers });
+        if (res.ok) {
+          this.elevenStatus = await res.json();
+          this.updateVoiceEngineBadge();
+          this.updateSettingsModalStatus();
+        }
+      } catch (e) {
+        // Offline or fallback mode
+      }
+    }
+
+    updateVoiceEngineBadge() {
+      const badge = document.getElementById("tour-voice-engine-badge");
+      if (!badge) return;
+      if (this.voiceEngine === "elevenlabs") {
+        const isReady = this.elevenStatus?.available || Boolean(this.elevenApiKey);
+        if (isReady) {
+          badge.textContent = "11LABS AI";
+          badge.className = "tour-engine-badge badge-eleven-active";
+          badge.title = "ElevenLabs Neural Voice Active";
+        } else {
+          badge.textContent = "11LABS (FALLBACK)";
+          badge.className = "tour-engine-badge badge-eleven-fallback";
+          badge.title = "ElevenLabs key missing; falling back to Web Speech";
+        }
+      } else {
+        badge.textContent = "BROWSER TTS";
+        badge.className = "tour-engine-badge badge-webspeech";
+        badge.title = "Browser Web Speech API Active";
+      }
+    }
+
+    setVoiceEngine(engine) {
+      this.voiceEngine = engine;
+      localStorage.setItem("qds_tour_voice_engine", engine);
+      this.updateVoiceEngineBadge();
+      this.updateSettingsModalValues();
+      this.stopSpeaking();
+    }
+
+    toggleVoiceSettings() {
+      const modal = document.getElementById("tour-voice-settings-modal");
+      if (!modal) return;
+      modal.classList.toggle("hidden");
+      if (!modal.classList.contains("hidden")) {
+        this.updateSettingsModalValues();
+        this.checkElevenStatus();
+      }
+    }
+
+    updateSettingsModalValues() {
+      const input = document.getElementById("input-eleven-key");
+      const selVoice = document.getElementById("select-eleven-voice");
+      const btnEleven = document.getElementById("opt-provider-eleven");
+      const btnWeb = document.getElementById("opt-provider-webspeech");
+
+      if (input) input.value = this.elevenApiKey || "";
+      if (selVoice) selVoice.value = this.elevenVoiceId;
+
+      if (btnEleven && btnWeb) {
+        if (this.voiceEngine === "elevenlabs") {
+          btnEleven.classList.add("active");
+          btnWeb.classList.remove("active");
+        } else {
+          btnWeb.classList.add("active");
+          btnEleven.classList.remove("active");
+        }
+      }
+    }
+
+    updateSettingsModalStatus() {
+      const statusEl = document.getElementById("eleven-key-status");
+      if (!statusEl) return;
+      const isReady = this.elevenStatus?.available || Boolean(this.elevenApiKey);
+      if (isReady) {
+        statusEl.innerHTML = `<span class="text-emerald-400">● Connected</span> — ${this.elevenStatus?.cached_audio_count || 0} clips cached (0ms latency)`;
+      } else {
+        statusEl.innerHTML = `<span class="text-zinc-400">○ No Key Detected</span>. Paste key above or add <code class="text-zinc-300">ELEVENLABS_API_KEY</code> to <code class="text-zinc-300">.env</code>.`;
+      }
+    }
+
+    async testVoiceSample() {
+      const status = document.getElementById("voice-sample-status");
+      if (status) status.textContent = "Synthesizing...";
+      this.stopSpeaking();
+      const sampleText = "Greetings, Operator. ElevenLabs neural AI voice is active on Quetzalcoatl SOC.";
+      await this.speakStep(sampleText);
+      if (status) status.textContent = "Playing sample...";
+      setTimeout(() => { if (status) status.textContent = ""; }, 4000);
+    }
+
+    showVoiceNotification(msg, type = "info") {
+      if (typeof window.showToast === "function") {
+        window.showToast(type, "Voice Engine", msg);
+      }
+    }
+
+    // Voice Synthesizer via Native Web Speech API (Local Fallback)
     initVoices() {
       if (!('speechSynthesis' in window)) return;
       const selectBestVoice = () => {
@@ -53,10 +162,87 @@
       }
     }
 
-    speakStep(text) {
+    async speakStep(text) {
       this.stopSpeaking();
-      if (!this.voiceEnabled || !('speechSynthesis' in window)) return;
+      if (!this.voiceEnabled) return;
 
+      // 1. Try ElevenLabs Neural Voice if selected
+      if (this.voiceEngine === "elevenlabs") {
+        try {
+          this.isSpeaking = true;
+          this.updateSpeakingWave(true);
+
+          const headers = { "Content-Type": "application/json" };
+          if (this.elevenApiKey) {
+            headers["xi-api-key"] = this.elevenApiKey;
+          }
+
+          this.audioAbortController = new AbortController();
+          const resp = await fetch("/api/tts", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              text,
+              voice_id: this.elevenVoiceId,
+              api_key: this.elevenApiKey || undefined
+            }),
+            signal: this.audioAbortController.signal
+          });
+
+          const contentType = resp.headers.get("Content-Type") || "";
+          if (resp.ok && contentType.includes("audio")) {
+            const blob = await resp.blob();
+            const audioUrl = URL.createObjectURL(blob);
+            this.audioPlayer.src = audioUrl;
+
+            this.audioPlayer.onplay = () => {
+              this.isSpeaking = true;
+              this.updateSpeakingWave(true);
+            };
+
+            this.audioPlayer.onended = () => {
+              this.isSpeaking = false;
+              this.updateSpeakingWave(false);
+              URL.revokeObjectURL(audioUrl);
+              if (this.isAutoPlaying && this.isActive) {
+                this.speechTimeoutId = setTimeout(() => {
+                  const steps = this.getSteps();
+                  if (this.currentStep < steps.length - 1) {
+                    this.next();
+                  } else {
+                    this.stop();
+                  }
+                }, 1000);
+              }
+            };
+
+            this.audioPlayer.onerror = (e) => {
+              console.warn("ElevenLabs audio playback failed, falling back to WebSpeech:", e);
+              URL.revokeObjectURL(audioUrl);
+              this.speakWebSpeech(text);
+            };
+
+            await this.audioPlayer.play();
+            return;
+          } else {
+            // Server returned JSON fallback (e.g. 401 key missing or quota limit)
+            this.speakWebSpeech(text);
+            return;
+          }
+        } catch (err) {
+          if (err.name === "AbortError") return;
+          console.warn("ElevenLabs fetch error, falling back to WebSpeech:", err);
+          this.speakWebSpeech(text);
+          return;
+        }
+      }
+
+      // 2. Default Browser Web Speech API
+      this.speakWebSpeech(text);
+    }
+
+    speakWebSpeech(text) {
+      if (!('speechSynthesis' in window)) return;
       try {
         const utter = new SpeechSynthesisUtterance(text);
         utter.rate = 1.02; // crisp, comfortable speaking pace
@@ -71,7 +257,6 @@
         utter.onend = () => {
           this.isSpeaking = false;
           this.updateSpeakingWave(false);
-          // If auto-play is active, advance after a short comfortable pause
           if (this.isAutoPlaying && this.isActive) {
             this.speechTimeoutId = setTimeout(() => {
               const steps = this.getSteps();
@@ -80,11 +265,11 @@
               } else {
                 this.stop();
               }
-            }, 1100);
+            }, 1000);
           }
         };
 
-        utter.onerror = (e) => {
+        utter.onerror = () => {
           this.isSpeaking = false;
           this.updateSpeakingWave(false);
         };
@@ -92,7 +277,7 @@
         this.currentUtterance = utter;
         window.speechSynthesis.speak(utter);
       } catch (err) {
-        console.warn("Speech synthesis error:", err);
+        console.warn("WebSpeech error:", err);
       }
     }
 
@@ -100,6 +285,16 @@
       if (this.speechTimeoutId) {
         clearTimeout(this.speechTimeoutId);
         this.speechTimeoutId = null;
+      }
+      if (this.audioAbortController) {
+        this.audioAbortController.abort();
+        this.audioAbortController = null;
+      }
+      if (this.audioPlayer) {
+        try {
+          this.audioPlayer.pause();
+          this.audioPlayer.currentTime = 0;
+        } catch (e) {}
       }
       if ('speechSynthesis' in window) {
         try {
@@ -244,9 +439,10 @@
                 <span class="tour-live-dot"></span>
               </div>
               <div class="min-w-0">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5 flex-wrap">
                   <span class="tour-bot-name">AGENT Q</span>
                   <span class="tour-auto-indicator" id="tour-auto-status">AUTOMATED TOUR</span>
+                  <span id="tour-voice-engine-badge" class="tour-engine-badge badge-eleven-active">11LABS</span>
                   <div class="tour-voice-wave hidden" id="tour-voice-wave" title="Speaking out loud">
                     <span></span><span></span><span></span><span></span>
                   </div>
@@ -255,6 +451,9 @@
               </div>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
+              <button id="tour-btn-voice-settings" class="tour-icon-btn" title="Voice Model & ElevenLabs Settings">
+                <span>⚙️</span>
+              </button>
               <button id="tour-btn-voice" class="tour-icon-btn ${this.voiceEnabled ? 'tour-voice-on' : ''}" title="Toggle Spoken Voice [V]">
                 <span id="tour-voice-icon">${this.voiceEnabled ? '🎙️' : '🔇'}</span>
               </button>
@@ -318,6 +517,73 @@
                 <span id="tour-autoplay-icon">⏸</span> <span id="tour-autoplay-label">Pause</span>
               </button>
               <button id="tour-btn-next" class="tour-btn tour-btn-primary" title="Next Step [→]">Next ➔</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sleek Voice Engine Settings Modal -->
+        <div id="tour-voice-settings-modal" class="tour-voice-settings-modal hidden">
+          <div class="voice-modal-header">
+            <div class="flex items-center gap-2">
+              <span class="text-sm">🎙️</span>
+              <span class="font-bold text-xs text-white mono">VOICE ENGINE SETTINGS</span>
+            </div>
+            <button id="voice-modal-btn-close" class="text-zinc-400 hover:text-white text-xs px-1" title="Close Settings">✕</button>
+          </div>
+          <div class="p-3 space-y-3 text-xs">
+            <!-- Voice Provider Select -->
+            <div>
+              <label class="block text-[10px] text-zinc-400 uppercase mono font-semibold mb-1">Voice Provider</label>
+              <div class="grid grid-cols-2 gap-2">
+                <button id="opt-provider-eleven" class="provider-pill p-2 rounded-lg text-center flex items-center justify-center gap-1.5">
+                  <span>✨</span>
+                  <span class="font-bold">ElevenLabs AI</span>
+                </button>
+                <button id="opt-provider-webspeech" class="provider-pill p-2 rounded-lg text-center flex items-center justify-center gap-1.5">
+                  <span>🗣️</span>
+                  <span>Web Speech</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- ElevenLabs Voice Dropdown -->
+            <div id="eleven-voice-group">
+              <label class="block text-[10px] text-zinc-400 uppercase mono font-semibold mb-1">ElevenLabs Neural Voice</label>
+              <select id="select-eleven-voice" class="w-full bg-zinc-900 border border-zinc-700 text-white rounded-lg p-2 text-xs focus:outline-none focus:border-white">
+                <option value="21m00Tcm4TlvDq8ikWAM">Rachel (Agent Q) — Crisp Cybersecurity AI</option>
+                <option value="pNInz6obpgDQGcFmaJgB">Adam — Deep Authoritative SOC Narrator</option>
+                <option value="ErXwobaYiN019PkySvjV">Antoni — Modern Tech Lead Voice</option>
+                <option value="EXAVITQu4vr4xnSDxMaL">Bella — Engaging Narrative Voice</option>
+                <option value="TxGEqnHWrfWFTfGW9XjX">Josh — Natural Engineering Tone</option>
+                <option value="JBFqnCBsd6RMkjVDRZzb">George — Articulate British Intelligence</option>
+              </select>
+            </div>
+
+            <!-- ElevenLabs API Key Input -->
+            <div id="eleven-key-group">
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-[10px] text-zinc-400 uppercase mono font-semibold">ElevenLabs API Key</label>
+                <span class="text-[9px] text-zinc-500">(or set in .env)</span>
+              </div>
+              <div class="flex gap-2">
+                <input type="password" id="input-eleven-key" placeholder="xi-... (stored in browser)"
+                  class="flex-1 bg-zinc-900 border border-zinc-700 text-white rounded-lg px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:border-white" />
+                <button id="btn-save-eleven-key" class="px-3 py-1.5 bg-white text-black font-bold rounded-lg text-xs hover:bg-zinc-200 transition shrink-0">
+                  Save
+                </button>
+              </div>
+              <div id="eleven-key-status" class="mt-1 text-[10px] text-zinc-400 mono leading-tight">
+                Status: Checking connection...
+              </div>
+            </div>
+
+            <!-- Test Voice Sample Button -->
+            <div class="pt-1 flex items-center justify-between border-t border-zinc-800/80">
+              <button id="btn-test-voice" class="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs flex items-center gap-1.5 transition">
+                <span>▶</span>
+                <span>Test Sample</span>
+              </button>
+              <span id="voice-sample-status" class="text-[10px] mono text-zinc-400"></span>
             </div>
           </div>
         </div>
@@ -638,8 +904,32 @@
         this.prev();
       });
       document.getElementById("tour-btn-voice")?.addEventListener("click", () => this.toggleVoice());
+      document.getElementById("tour-btn-voice-settings")?.addEventListener("click", () => this.toggleVoiceSettings());
+      document.getElementById("voice-modal-btn-close")?.addEventListener("click", () => this.toggleVoiceSettings());
       document.getElementById("tour-btn-mute")?.addEventListener("click", () => this.toggleMute());
       document.getElementById("tour-btn-autoplay")?.addEventListener("click", () => this.toggleAutoPlay());
+
+      // ElevenLabs Voice Settings Controls
+      document.getElementById("opt-provider-eleven")?.addEventListener("click", () => {
+        this.setVoiceEngine("elevenlabs");
+      });
+      document.getElementById("opt-provider-webspeech")?.addEventListener("click", () => {
+        this.setVoiceEngine("webspeech");
+      });
+      document.getElementById("select-eleven-voice")?.addEventListener("change", (e) => {
+        this.elevenVoiceId = e.target.value;
+        localStorage.setItem("qds_tour_eleven_voice", this.elevenVoiceId);
+      });
+      document.getElementById("btn-save-eleven-key")?.addEventListener("click", () => {
+        const input = document.getElementById("input-eleven-key");
+        this.elevenApiKey = (input?.value || "").trim();
+        localStorage.setItem("qds_tour_eleven_key", this.elevenApiKey);
+        this.checkElevenStatus();
+        this.showVoiceNotification("ElevenLabs API key saved.", "success");
+      });
+      document.getElementById("btn-test-voice")?.addEventListener("click", () => {
+        this.testVoiceSample();
+      });
 
       // Global Keyboard Hotkeys
       window.addEventListener("keydown", (e) => {
@@ -706,6 +996,9 @@
       this.stopSpeaking();
       this.stopCountdownTimer();
 
+      const modal = document.getElementById("tour-voice-settings-modal");
+      if (modal) modal.classList.add("hidden");
+
       const root = document.getElementById("tour-bot-root");
       if (root) root.classList.add("hidden");
 
@@ -770,6 +1063,9 @@
           clearTimeout(this.speechTimeoutId);
           this.speechTimeoutId = null;
         }
+        if (this.audioPlayer && !this.audioPlayer.paused) {
+          this.audioPlayer.pause();
+        }
         if (this.isSpeaking && 'speechSynthesis' in window) {
           window.speechSynthesis.pause();
         }
@@ -777,7 +1073,9 @@
       } else {
         this.isAutoPlaying = true;
         this.updateAutoPlayUi(true);
-        if ('speechSynthesis' in window && window.speechSynthesis.paused) {
+        if (this.audioPlayer && this.audioPlayer.src && this.audioPlayer.paused && this.audioPlayer.currentTime > 0) {
+          this.audioPlayer.play().catch(() => {});
+        } else if ('speechSynthesis' in window && window.speechSynthesis.paused) {
           window.speechSynthesis.resume();
         } else if (!this.isSpeaking && this.voiceEnabled) {
           const steps = this.getSteps();

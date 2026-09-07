@@ -52,5 +52,20 @@ def test_http(tmp_path):
         sim_scen_res = httpx.post(f'http://127.0.0.1:{port}/scenarios/simulate?scenario_id=healthcare_organ_dispatch')
         assert sim_scen_res.status_code == 200
         assert 'impact_summary' in sim_scen_res.json()
+
+        # Verify ElevenLabs TTS endpoints
+        tts_status_res = httpx.get(f'http://127.0.0.1:{port}/api/tts/status')
+        assert tts_status_res.status_code == 200
+        assert tts_status_res.json()['provider'] == 'elevenlabs'
+
+        tts_voices_res = httpx.get(f'http://127.0.0.1:{port}/api/tts/voices')
+        assert tts_voices_res.status_code == 200
+        assert len(tts_voices_res.json()['voices']) >= 5
+
+        # Verify fallback response when no API key provided
+        tts_synth_res = httpx.post(f'http://127.0.0.1:{port}/api/tts', json={'text': 'Test voice'})
+        assert tts_synth_res.status_code in [200, 401]
+        if tts_synth_res.status_code == 401:
+            assert tts_synth_res.json().get('fallback') is True
     finally:
         server.should_exit=True;thread.join(5);sock.close()

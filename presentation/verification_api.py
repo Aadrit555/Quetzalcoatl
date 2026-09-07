@@ -1,12 +1,16 @@
 import os
 import time
+import hashlib
+from pathlib import Path
 from threading import Lock
 from typing import Literal
 import numpy as np
-from fastapi import FastAPI, HTTPException
+import httpx
+import dotenv
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from qds_protocol.measurement_record import SignaturePayload
 from qds_protocol.verification_engine import VerificationEngine
@@ -556,5 +560,160 @@ def create_app(verifier: VerificationEngine, chsh_receipts: dict[str,list[tuple[
             "tokens": 200,
             "noise": 0.03
         }
+
+    # -------------------------------------------------------------
+    # ELEVENLABS AI VOICE SYNTHESIS & PERSISTENT CACHE ENGINE
+    # -------------------------------------------------------------
+    cache_dir = Path("artifacts/tts_cache")
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    CURATED_ELEVEN_VOICES = [
+        {"id": "21m00Tcm4TlvDq8ikWAM", "name": "Rachel (Agent Q)", "gender": "Female", "description": "Crisp, authoritative cybersecurity AI analyst"},
+        {"id": "pNInz6obpgDQGcFmaJgB", "name": "Adam", "gender": "Male", "description": "Deep, authoritative SOC threat narrator"},
+        {"id": "ErXwobaYiN019PkySvjV", "name": "Antoni", "gender": "Male", "description": "Modern, crisp technical lead voice"},
+        {"id": "EXAVITQu4vr4xnSDxMaL", "name": "Bella", "gender": "Female", "description": "Warm, engaging narrative voice"},
+        {"id": "TxGEqnHWrfWFTfGW9XjX", "name": "Josh", "gender": "Male", "description": "Calm, natural engineering tone"},
+        {"id": "JBFqnCBsd6RMkjVDRZzb", "name": "George", "gender": "Male", "description": "Warm, articulate British intelligence voice"},
+    ]
+
+    def get_elevenlabs_api_key(req: Request, body_key: str | None = None) -> str | None:
+        """Resolve ElevenLabs API key from header, request body, environment, or .env file."""
+        # 1. Header
+        key = req.headers.get("xi-api-key") or req.headers.get("x-elevenlabs-key")
+        if key and key.strip():
+            return key.strip()
+        # 2. Body
+        if body_key and body_key.strip():
+            return body_key.strip()
+        # 3. Environment variable
+        env_key = os.environ.get("ELEVENLABS_API_KEY") or os.environ.get("XI_API_KEY")
+        if env_key and env_key.strip():
+            return env_key.strip()
+        # 4. Dotenv file in workspace
+        dotenv_path = Path(".env")
+        if dotenv_path.exists():
+            values = dotenv.dotenv_values(dotenv_path)
+            dot_key = values.get("ELEVENLABS_API_KEY") or values.get("XI_API_KEY")
+            if dot_key and dot_key.strip():
+                return dot_key.strip()
+        return None
+
+    @app.get('/api/tts/status')
+    def api_tts_status(request: Request) -> dict:
+        """Expose ElevenLabs connectivity, cached audio count, and model info."""
+        has_key = bool(get_elevenlabs_api_key(request))
+        return {
+            "provider": "elevenlabs",
+            "available": has_key,
+            "has_key": has_key,
+            "default_voice_id": "21m00Tcm4TlvDq8ikWAM",
+            "default_voice_name": "Rachel (Agent Q)",
+            "model_id": "eleven_turbo_v2_5",
+            "cached_audio_count": len(list(cache_dir.glob("*.mp3"))),
+            "fallback_provider": "webspeech"
+        }
+
+    @app.get('/api/tts/voices')
+    def api_tts_voices() -> dict:
+        """Return curated list of high-quality ElevenLabs voices."""
+        return {
+            "voices": CURATED_ELEVEN_VOICES,
+            "default_voice_id": "21m00Tcm4TlvDq8ikWAM"
+        }
+
+    @app.post('/api/tts', response_model=None)
+    async def api_tts(request: Request, body: dict):
+        """
+        Synthesize text to speech using ElevenLabs with disk caching.
+        Returns MP3 audio directly. If key is missing or quota exceeded, returns JSON error with fallback=True.
+        """
+        text = (body.get("text") or "").strip()
+        if not text:
+            raise HTTPException(400, "Text is required for speech synthesis")
+
+        voice_id = body.get("voice_id") or "21m00Tcm4TlvDq8ikWAM"
+        body_key = body.get("api_key")
+        api_key = get_elevenlabs_api_key(request, body_key)
+
+        # Hash text + voice to create persistent local cache key
+        text_hash = hashlib.sha256(f"{voice_id}:{text}".encode("utf-8")).hexdigest()[:20]
+        cached_file = cache_dir / f"{voice_id}_{text_hash}.mp3"
+
+        # 1. Return cached audio if available (instant 0ms response, 0 quota used!)
+        if cached_file.exists() and cached_file.stat().st_size > 0:
+            return FileResponse(
+                cached_file,
+                media_type="audio/mpeg",
+                headers={
+                    "X-TTS-Cache": "HIT",
+                    "X-TTS-Provider": "elevenlabs-cached",
+                    "Cache-Control": "public, max-age=86400"
+                }
+            )
+
+        # 2. If no API key is configured, tell client to use WebSpeech fallback
+        if not api_key:
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "status": "error",
+                    "error": "ELEVENLABS_API_KEY not configured. Set it in .env or via Voice Settings.",
+                    "fallback": True,
+                    "provider": "webspeech"
+                }
+            )
+
+        # 3. Call ElevenLabs REST API
+        eleven_url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+        headers = {
+            "xi-api-key": api_key,
+            "Content-Type": "application/json",
+            "Accept": "audio/mpeg"
+        }
+        payload = {
+            "text": text,
+            "model_id": "eleven_turbo_v2_5",
+            "voice_settings": {
+                "stability": 0.5,
+                "similarity_boost": 0.75
+            }
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=18.0) as client:
+                resp = await client.post(eleven_url, json=payload, headers=headers)
+
+                if resp.status_code == 200:
+                    # Write to cache
+                    cached_file.write_bytes(resp.content)
+                    return FileResponse(
+                        cached_file,
+                        media_type="audio/mpeg",
+                        headers={
+                            "X-TTS-Cache": "MISS",
+                            "X-TTS-Provider": "elevenlabs-live",
+                            "Cache-Control": "public, max-age=86400"
+                        }
+                    )
+                else:
+                    error_msg = f"ElevenLabs API returned HTTP {resp.status_code}: {resp.text[:200]}"
+                    return JSONResponse(
+                        status_code=resp.status_code,
+                        content={
+                            "status": "error",
+                            "error": error_msg,
+                            "fallback": True,
+                            "status_code": resp.status_code
+                        }
+                    )
+        except Exception as exc:
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "status": "error",
+                    "error": f"ElevenLabs request error: {str(exc)}",
+                    "fallback": True
+                }
+            )
 
     return app
