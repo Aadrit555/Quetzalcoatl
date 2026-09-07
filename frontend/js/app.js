@@ -452,21 +452,21 @@ function renderDecisionData(data) {
     circle.style.strokeDashoffset = offset;
 
     if (classification.action === "BLOCK") {
-      circle.style.stroke = "#f43f5e";
-      if (aBadge) aBadge.className = "px-5 py-3 rounded-lg text-2xl font-black tracking-wider mono text-center badge-block";
-      if (tBadge) tBadge.className = "text-xs mono text-rose-400 font-bold";
+      circle.style.stroke = "#ffffff";
+      if (aBadge) aBadge.className = "px-5 py-3 rounded-lg text-2xl font-black tracking-wider mono text-center bg-white text-black border border-white";
+      if (tBadge) tBadge.className = "text-xs mono text-zinc-300 font-bold";
       if (summary) summary.innerText = "CRITICAL THREAT: Signature aborted. Wave function collapsed or credential fraud.";
       if (window.QuantumDither) window.QuantumDither.setThreatMode(true);
     } else if (classification.action === "ALERT") {
-      circle.style.stroke = "#f59e0b";
-      if (aBadge) aBadge.className = "px-5 py-3 rounded-lg text-2xl font-black tracking-wider mono text-center badge-alert";
-      if (tBadge) tBadge.className = "text-xs mono text-amber-400 font-bold";
+      circle.style.stroke = "#a1a1aa";
+      if (aBadge) aBadge.className = "px-5 py-3 rounded-lg text-2xl font-black tracking-wider mono text-center bg-zinc-800 text-white border border-zinc-500";
+      if (tBadge) tBadge.className = "text-xs mono text-zinc-400 font-bold";
       if (summary) summary.innerText = "SUSPICIOUS CHANNEL: Quantum optical disturbance exceeded sv; recalibration advised.";
       if (window.QuantumDither) window.QuantumDither.setThreatMode(true);
     } else {
-      circle.style.stroke = "#10b981";
-      if (aBadge) aBadge.className = "px-5 py-3 rounded-lg text-2xl font-black tracking-wider mono text-center badge-accept";
-      if (tBadge) tBadge.className = "text-xs mono text-emerald-400 font-bold";
+      circle.style.stroke = "#ffffff";
+      if (aBadge) aBadge.className = "px-5 py-3 rounded-lg text-2xl font-black tracking-wider mono text-center bg-zinc-900 text-white border border-zinc-700";
+      if (tBadge) tBadge.className = "text-xs mono text-white font-bold";
       if (summary) summary.innerText = "VERIFIED: Quantum states undisturbed. Information-theoretic authenticity validated.";
       if (window.QuantumDither) window.QuantumDither.setThreatMode(false);
     }
@@ -481,11 +481,11 @@ function renderDecisionData(data) {
   if (stickyAction) stickyAction.innerText = classification.action;
   if (stickyError) stickyError.innerText = `${errPct.toFixed(1)}%`;
   if (stickyDot) {
-    stickyDot.className = `w-2 h-2 rounded-full ${classification.action === 'BLOCK' ? 'bg-rose-500 animate-ping' : classification.action === 'ALERT' ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'}`;
+    stickyDot.className = "w-2 h-2 rounded-full bg-white";
   }
   if (sysStatus) {
     sysStatus.innerText = classification.action === 'BLOCK' ? 'THREAT INTERDICTED' : classification.action === 'ALERT' ? 'CHANNEL NOISE' : 'NOMINAL (ACTIVE)';
-    sysStatus.className = `font-semibold ${classification.action === 'BLOCK' ? 'text-rose-400' : classification.action === 'ALERT' ? 'text-amber-400' : 'text-emerald-400'}`;
+    sysStatus.className = "font-semibold text-white";
   }
 
   // 2. Mathematical Reasoning List
@@ -494,7 +494,7 @@ function renderDecisionData(data) {
     rList.innerHTML = "";
     (classification.reasons || []).forEach(r => {
       const isWarn = r.includes("FORGERY") || r.includes("REPLAY") || r.includes("IMPERSONATION") || r.includes("Unauthorized");
-      const color = isWarn ? "text-rose-400" : (r.includes("MANIPULATION") ? "text-amber-400" : "text-emerald-300");
+      const color = isWarn ? "text-zinc-200" : (r.includes("MANIPULATION") ? "text-zinc-400" : "text-zinc-100");
       const icon = isWarn ? "alert-triangle" : (r.includes("MANIPULATION") ? "alert-circle" : "check");
       rList.innerHTML += `<li class="${color} flex items-start gap-1.5"><i data-lucide="${icon}" class="w-3.5 h-3.5 flex-shrink-0 mt-0.5"></i> ${r}</li>`;
     });
@@ -873,36 +873,25 @@ function initHoverExplainerEngine() {
     tooltip.className = "interactive";
     tooltip.innerHTML = `
       <div class="tooltip-header">
-        <span class="tooltip-tag" id="q-tooltip-tag">PLAIN ENGLISH</span>
-        <span class="text-[9px] mono text-cyan-300 font-semibold" id="q-tooltip-countdown">5.0s</span>
+        <span class="tooltip-tag" id="q-tooltip-tag">INFO</span>
       </div>
       <div class="tooltip-title" id="q-tooltip-title">Feature</div>
       <p class="tooltip-body mt-1" id="q-tooltip-body"></p>
-      <div class="tooltip-timer-track">
-        <div id="q-tooltip-bar" class="tooltip-timer-bar"></div>
-      </div>
     `;
     document.body.appendChild(tooltip);
   }
 
   const titleEl = document.getElementById("q-tooltip-title");
   const bodyEl = document.getElementById("q-tooltip-body");
-  const countEl = document.getElementById("q-tooltip-countdown");
-  const barEl = document.getElementById("q-tooltip-bar");
   const tagEl = document.getElementById("q-tooltip-tag");
 
-  let timer = null;
-  let interval = null;
   let currentTarget = null;
-  let remainingMs = 5000;
-  let isPaused = false;
   let hideTimeout = null;
-  const DURATION_MS = 5000;
 
   function positionTooltip(target) {
     const rect = target.getBoundingClientRect();
     const ttWidth = 320;
-    const ttHeight = 130;
+    const ttHeight = 100;
     const padding = 12;
 
     // Prefer placing directly above the element
@@ -926,26 +915,8 @@ function initHoverExplainerEngine() {
   }
 
   function dismissTooltip() {
-    if (timer) { clearTimeout(timer); timer = null; }
-    if (interval) { clearInterval(interval); interval = null; }
     tooltip.classList.remove("active");
     currentTarget = null;
-    isPaused = false;
-  }
-
-  function startCountdown() {
-    if (interval) clearInterval(interval);
-    const stepMs = 100;
-    interval = setInterval(() => {
-      if (isPaused) return;
-      remainingMs = Math.max(0, remainingMs - stepMs);
-      if (countEl) countEl.textContent = (remainingMs / 1000).toFixed(1) + "s";
-      if (barEl) barEl.style.width = `${(remainingMs / DURATION_MS) * 100}%`;
-
-      if (remainingMs <= 0) {
-        dismissTooltip();
-      }
-    }, stepMs);
   }
 
   function showExplainer(target) {
@@ -958,46 +929,21 @@ function initHoverExplainerEngine() {
     const body = target.getAttribute("data-explain-body");
     if (!title || !body) return;
 
-    if (currentTarget === target && tooltip.classList.contains("active")) {
-      return;
-    }
-
     currentTarget = target;
-    remainingMs = DURATION_MS;
-    isPaused = false;
 
     // Categorize based on context
     const category = title.includes("Attack") || title.includes("Forgery") || title.includes("Replay") ? "THREAT VECTOR" :
       title.includes("Sector") || title.includes("Cockpit") ? "SOC WORKSPACE" :
         title.includes("Teleport") || title.includes("Circuit") ? "QUANTUM PROTOCOL" :
-          title.includes("SPRT") || title.includes("Hoeffding") || title.includes("Evidence") ? "STATISTICAL PROOF" : "PLAIN ENGLISH";
+          title.includes("SPRT") || title.includes("Hoeffding") || title.includes("Evidence") ? "STATISTICAL PROOF" : "EXPLAINER";
 
     if (tagEl) tagEl.textContent = category;
     if (titleEl) titleEl.textContent = title;
     if (bodyEl) bodyEl.textContent = body;
-    if (countEl) countEl.textContent = "5.0s";
-
-    if (barEl) {
-      barEl.style.transition = "none";
-      barEl.style.width = "100%";
-      void barEl.offsetWidth;
-    }
 
     positionTooltip(target);
     tooltip.classList.add("active");
-    startCountdown();
   }
-
-  // Hover into tooltip pauses countdown so user can comfortably read!
-  tooltip.addEventListener("mouseenter", () => {
-    isPaused = true;
-    if (countEl) countEl.textContent = "PAUSED";
-  });
-
-  tooltip.addEventListener("mouseleave", () => {
-    isPaused = false;
-    startCountdown();
-  });
 
   document.addEventListener("mouseover", (e) => {
     const target = e.target.closest("[data-explain-title]");
@@ -1015,14 +961,20 @@ function initHoverExplainerEngine() {
       return;
     }
 
-    // 250ms grace period to avoid flicker when mouse drifts slightly
+    // 80ms buffer so moving between inner spans doesn't flicker
     hideTimeout = setTimeout(() => {
       dismissTooltip();
-    }, 250);
+    }, 80);
   });
 
   // Reposition on window resize or scroll
   window.addEventListener("scroll", () => {
+    if (currentTarget && tooltip.classList.contains("active")) {
+      positionTooltip(currentTarget);
+    }
+  }, { passive: true });
+
+  window.addEventListener("resize", () => {
     if (currentTarget && tooltip.classList.contains("active")) {
       positionTooltip(currentTarget);
     }

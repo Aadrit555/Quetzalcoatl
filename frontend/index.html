@@ -66,28 +66,28 @@
       <button onclick="toggleGuideMode()" id="guide-mode-btn"
         class="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 flex items-center gap-1.5 transition"
         title="Toggle Explainer Guide Mode (Key: H)">
-        <i data-lucide="help-circle" class="w-3.5 h-3.5 text-cyan-400"></i>
+        <i data-lucide="help-circle" class="w-3.5 h-3.5 text-zinc-300"></i>
         <span class="hidden sm:inline">Guide Mode</span>
         <span class="text-[10px] text-zinc-500 mono">[H]</span>
       </button>
       <button onclick="if(window.QuantumDither) window.QuantumDither.cyclePreset()" id="btn-toggle-dither"
         data-explain-title="Quantum Dither Ambient Background"
-        data-explain-body="Toggle or cycle through retro-cyber 8x8 Bayer Matrix Dither wave themes (inspired by ReactBits). Keyboard hotkey: [D]."
-        class="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-cyan-500/40 text-cyan-400 flex items-center gap-1.5 transition"
+        data-explain-body="Toggle or cycle through retro-cyber 8x8 Bayer Matrix Dither wave themes. Keyboard hotkey: [D]."
+        class="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white flex items-center gap-1.5 transition"
         title="Cycle / Toggle Dither Background (Key: D)">
-        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i>
+        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-zinc-300"></i>
         <span class="dither-label hidden sm:inline">Dither: ON</span>
         <span class="text-[10px] text-zinc-500 mono">[D]</span>
       </button>
       <button onclick="exportAuditReport()" data-explain-title="Export Forensic Audit Report"
         data-explain-body="Downloads the active session's cryptographic Merkle proof, p-value evidence, and session hash as a JSON report."
         class="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 hover:text-white flex items-center gap-1.5 transition">
-        <i data-lucide="download" class="w-3.5 h-3.5 text-cyan-400"></i> Export Report
+        <i data-lucide="download" class="w-3.5 h-3.5 text-zinc-300"></i> Export Report
       </button>
       <a href="/minimal"
-        class="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-cyan-500/40 text-cyan-300 hover:text-white flex items-center gap-1.5 transition"
+        class="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white flex items-center gap-1.5 transition"
         title="Open Ultra-Minimal Mobile SPA">
-        <i data-lucide="smartphone" class="w-3.5 h-3.5 text-cyan-400"></i> Mobile UI
+        <i data-lucide="smartphone" class="w-3.5 h-3.5 text-zinc-300"></i> Mobile UI
       </a>
     </div>
   </header>
@@ -151,18 +151,18 @@
         <div class="flex items-center gap-1.5 overflow-x-auto">
           <span
             class="text-[10px] uppercase font-bold tracking-wider text-zinc-400 px-2 flex items-center gap-1 mono shrink-0">
-            <i data-lucide="compass" class="w-3.5 h-3.5 text-cyan-400"></i> Jump:
+            <i data-lucide="compass" class="w-3.5 h-3.5 text-zinc-300"></i> Jump:
           </span>
           <button onclick="scrollToSector('sector-verdict')" class="quick-nav-pill"><i data-lucide="shield-check"
-              class="w-3 h-3 text-emerald-400"></i> Verdict & Gauge</button>
+              class="w-3 h-3 text-zinc-300"></i> Verdict & Gauge</button>
           <button onclick="scrollToSector('sector-missions')" class="quick-nav-pill"><i data-lucide="shield-alert"
-              class="w-3 h-3 text-rose-400"></i> National Missions</button>
+              class="w-3 h-3 text-zinc-300"></i> National Missions</button>
           <button onclick="scrollToSector('sector-signer')" class="quick-nav-pill"><i data-lucide="pen-tool"
-              class="w-3 h-3 text-cyan-400"></i> Document Signer</button>
+              class="w-3 h-3 text-zinc-300"></i> Document Signer</button>
           <button onclick="scrollToSector('sector-threats')" class="quick-nav-pill"><i data-lucide="swords"
-              class="w-3 h-3 text-rose-400"></i> Threat Simulation Lab</button>
+              class="w-3 h-3 text-zinc-300"></i> Threat Simulation Lab</button>
           <button onclick="scrollToSector('sector-evidence')" class="quick-nav-pill"><i data-lucide="binary"
-              class="w-3 h-3 text-purple-400"></i> Scientific Evidence</button>
+              class="w-3 h-3 text-zinc-300"></i> Scientific Evidence</button>
         </div>
         <div class="text-[10px] mono text-zinc-500 hidden xl:flex items-center gap-2 shrink-0">
           <span>Keys: <kbd class="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300">1-7</kbd> tabs</span>
@@ -251,18 +251,18 @@
             <span class="text-[10px] uppercase font-bold tracking-wider text-zinc-400 block">Instant Actions</span>
             <button onclick="runLegitimateVerify()" data-explain-title="Verify Authentic Signature"
               data-explain-body="Simulates an honest Alice-to-Bob transmission with normal physical optical noise (~3%). Verified with state fidelity F > 95%."
-              class="w-full py-2.5 px-4 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 text-xs font-bold text-emerald-300 flex items-center justify-center gap-2 transition">
-              <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> Test Authentic Signature (Clean)
+              class="w-full py-2.5 px-4 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-500 text-xs font-bold text-white flex items-center justify-center gap-2 transition">
+              <i data-lucide="check-circle-2" class="w-4 h-4 text-white"></i> Test Authentic Signature (Clean)
             </button>
             <button onclick="simulateAttack('forgery')" data-explain-title="Simulate Quantum Forgery"
               data-explain-body="Eve attempts to forge a signature without Alice's private basis. Quantum physics guarantees ~33% error, triggering an instant BLOCK."
-              class="w-full py-2.5 px-4 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-500/50 text-xs font-bold text-rose-300 flex items-center justify-center gap-2 transition">
-              <i data-lucide="fingerprint" class="w-4 h-4 text-rose-400"></i> Test Quantum Forgery Attack (~34% Err)
+              class="w-full py-2.5 px-4 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-600 text-xs font-bold text-zinc-200 flex items-center justify-center gap-2 transition">
+              <i data-lucide="fingerprint" class="w-4 h-4 text-zinc-300"></i> Test Quantum Forgery Attack (~34% Err)
             </button>
             <button onclick="createNewSession()" data-explain-title="New Signing Session"
               data-explain-body="Generates a fresh set of pre-shared Bell pairs and Alice private keys with a new cryptographic session ID."
               class="w-full py-2 px-4 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-semibold text-zinc-300 flex items-center justify-center gap-2 transition">
-              <i data-lucide="plus" class="w-3.5 h-3.5 text-cyan-400"></i> Initialize Fresh Session
+              <i data-lucide="plus" class="w-3.5 h-3.5 text-zinc-300"></i> Initialize Fresh Session
             </button>
           </div>
         </div>

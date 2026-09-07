@@ -136,43 +136,43 @@
   `;
 
   const PRESETS = {
-    cyberCyan: {
-      name: 'Quantum Cyan',
-      waveColor: [0.0, 0.94, 0.85],
-      backgroundColor: [0.02, 0.03, 0.06],
-      waveSpeed: 0.045,
+    monochrome: {
+      name: 'Monochrome',
+      waveColor: [0.60, 0.60, 0.60],
+      backgroundColor: [0.01, 0.01, 0.02],
+      waveSpeed: 0.035,
       waveFrequency: 2.8,
-      waveAmplitude: 0.32,
+      waveAmplitude: 0.28,
       pixelSize: 2.5,
       colorNum: 4.0
     },
-    deepViolet: {
-      name: 'Deep Violet',
-      waveColor: [0.68, 0.38, 1.0],
-      backgroundColor: [0.03, 0.02, 0.07],
+    stealthGrey: {
+      name: 'Stealth Grey',
+      waveColor: [0.42, 0.42, 0.45],
+      backgroundColor: [0.0, 0.0, 0.0],
+      waveSpeed: 0.03,
+      waveFrequency: 2.5,
+      waveAmplitude: 0.25,
+      pixelSize: 2.5,
+      colorNum: 3.0
+    },
+    highContrast: {
+      name: '1-Bit Retro',
+      waveColor: [0.92, 0.92, 0.92],
+      backgroundColor: [0.0, 0.0, 0.0],
       waveSpeed: 0.04,
       waveFrequency: 3.0,
-      waveAmplitude: 0.3,
-      pixelSize: 2.5,
-      colorNum: 4.0
+      waveAmplitude: 0.35,
+      pixelSize: 3.0,
+      colorNum: 2.0
     },
-    matrixGreen: {
-      name: 'Matrix Neon',
-      waveColor: [0.1, 0.95, 0.45],
-      backgroundColor: [0.01, 0.04, 0.02],
-      waveSpeed: 0.045,
-      waveFrequency: 2.8,
-      waveAmplitude: 0.32,
-      pixelSize: 2.5,
-      colorNum: 4.0
-    },
-    threatRed: {
+    threatAlert: {
       name: 'Threat Alert',
-      waveColor: [1.0, 0.18, 0.25],
-      backgroundColor: [0.05, 0.01, 0.02],
+      waveColor: [0.95, 0.95, 0.95],
+      backgroundColor: [0.02, 0.02, 0.02],
       waveSpeed: 0.08,
-      waveFrequency: 3.5,
-      waveAmplitude: 0.4,
+      waveFrequency: 3.8,
+      waveAmplitude: 0.45,
       pixelSize: 2.5,
       colorNum: 4.0
     }
@@ -189,8 +189,8 @@
       this.animId = null;
       this.startTime = performance.now();
       this.enabled = true;
-      this.currentPresetKey = 'cyberCyan';
-      this.currentPreset = { ...PRESETS.cyberCyan };
+      this.currentPresetKey = 'monochrome';
+      this.currentPreset = { ...PRESETS.monochrome };
       this.mouse = { x: -9999, y: -9999, active: 0 };
       this.pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
 
@@ -389,11 +389,11 @@
 
     setThreatMode(isThreat) {
       if (isThreat) {
-        this.setPreset('threatRed');
-        if (this.canvas) this.canvas.style.opacity = '0.65';
-      } else {
-        this.setPreset('cyberCyan');
+        this.setPreset('threatAlert');
         if (this.canvas) this.canvas.style.opacity = '0.45';
+      } else {
+        this.setPreset('monochrome');
+        if (this.canvas) this.canvas.style.opacity = '0.28';
       }
     }
 
@@ -412,8 +412,8 @@
         if (label) {
           label.textContent = this.enabled ? `Dither: ON (${PRESETS[this.currentPresetKey].name})` : 'Dither: OFF';
         }
-        btn.classList.toggle('text-cyan-400', this.enabled);
-        btn.classList.toggle('border-cyan-500/50', this.enabled);
+        btn.classList.toggle('text-white', this.enabled);
+        btn.classList.toggle('border-zinc-500', this.enabled);
       }
     }
 

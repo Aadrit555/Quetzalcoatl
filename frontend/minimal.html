@@ -1697,30 +1697,23 @@
         tooltip.id = "quantum-tooltip";
         tooltip.innerHTML = `
           <div class="tooltip-header">
-            <span class="tooltip-tag" id="m-tooltip-tag">PLAIN ENGLISH</span>
-            <span class="font-mono text-[9px] text-cyan-300 font-semibold" id="m-tooltip-countdown">5.0s</span>
+            <span class="tooltip-tag" id="m-tooltip-tag">INFO</span>
           </div>
           <div class="tooltip-title" id="m-tooltip-title">Feature</div>
           <p class="tooltip-body mt-1" id="m-tooltip-body"></p>
-          <div class="tooltip-timer-track">
-            <div id="m-tooltip-bar" class="tooltip-timer-bar"></div>
-          </div>
         `;
         document.body.appendChild(tooltip);
       }
 
       const titleEl = document.getElementById("m-tooltip-title");
       const bodyEl = document.getElementById("m-tooltip-body");
-      const countEl = document.getElementById("m-tooltip-countdown");
-      const barEl = document.getElementById("m-tooltip-bar");
       const tagEl = document.getElementById("m-tooltip-tag");
 
-      let timer = null, interval = null, currentTarget = null, remainingMs = 5000, isPaused = false, hideTimeout = null;
-      const DURATION_MS = 5000;
+      let currentTarget = null, hideTimeout = null;
 
       function positionTooltip(target) {
         const rect = target.getBoundingClientRect();
-        const ttWidth = 300, ttHeight = 120, padding = 10;
+        const ttWidth = 300, ttHeight = 100, padding = 10;
         let top = rect.top - ttHeight - 8;
         let left = rect.left + (rect.width / 2) - (ttWidth / 2);
         if (top < padding) top = rect.bottom + 8;
@@ -1731,22 +1724,8 @@
       }
 
       function dismissTooltip() {
-        if (timer) { clearTimeout(timer); timer = null; }
-        if (interval) { clearInterval(interval); interval = null; }
         tooltip.classList.remove("active");
         currentTarget = null;
-        isPaused = false;
-      }
-
-      function startCountdown() {
-        if (interval) clearInterval(interval);
-        interval = setInterval(() => {
-          if (isPaused) return;
-          remainingMs = Math.max(0, remainingMs - 100);
-          if (countEl) countEl.textContent = (remainingMs / 1000).toFixed(1) + "s";
-          if (barEl) barEl.style.width = `${(remainingMs / DURATION_MS) * 100}%`;
-          if (remainingMs <= 0) dismissTooltip();
-        }, 100);
       }
 
       function showExplainer(target) {
@@ -1755,20 +1734,12 @@
         const body = target.getAttribute("data-explain-body");
         if (!title || !body) return;
         currentTarget = target;
-        remainingMs = DURATION_MS;
-        isPaused = false;
-        if (tagEl) tagEl.textContent = title.includes("Defense") || title.includes("Attack") ? "SECURITY GUIDE" : "QUANTUM INTEL";
+        if (tagEl) tagEl.textContent = title.includes("Defense") || title.includes("Attack") ? "SECURITY GUIDE" : "INFO";
         if (titleEl) titleEl.textContent = title;
         if (bodyEl) bodyEl.textContent = body;
-        if (countEl) countEl.textContent = "5.0s";
-        if (barEl) { barEl.style.transition = "none"; barEl.style.width = "100%"; void barEl.offsetWidth; }
         positionTooltip(target);
         tooltip.classList.add("active");
-        startCountdown();
       }
-
-      tooltip.addEventListener("mouseenter", () => { isPaused = true; if (countEl) countEl.textContent = "PAUSED"; });
-      tooltip.addEventListener("mouseleave", () => { isPaused = false; startCountdown(); });
 
       document.addEventListener("mouseover", (e) => {
         const target = e.target.closest("[data-explain-title]");
@@ -1780,7 +1751,7 @@
         if (!fromTarget) return;
         const toElement = e.relatedTarget;
         if (toElement && (fromTarget.contains(toElement) || tooltip.contains(toElement))) return;
-        hideTimeout = setTimeout(() => { dismissTooltip(); }, 250);
+        hideTimeout = setTimeout(() => { dismissTooltip(); }, 80);
       });
 
       // Mobile tap-to-inspect support
