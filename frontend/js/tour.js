@@ -113,11 +113,15 @@
     updateSettingsModalStatus() {
       const statusEl = document.getElementById("eleven-key-status");
       if (!statusEl) return;
-      const isReady = this.elevenStatus?.available || Boolean(this.elevenApiKey);
-      if (isReady) {
-        statusEl.innerHTML = `<span class="text-emerald-400">● Connected</span> — ${this.elevenStatus?.cached_audio_count || 0} clips cached (0ms latency)`;
+      const key = (this.elevenApiKey || "").trim();
+      const hasEnvKey = Boolean(this.elevenStatus?.has_key);
+
+      if (key && !key.startsWith("sk_")) {
+        statusEl.innerHTML = `<span class="text-amber-400">⚠️ Key ID entered</span>: Secret API keys start with <code class="text-white font-bold">sk_...</code>. Copy the Secret Key from ElevenLabs.`;
+      } else if (key.startsWith("sk_") || hasEnvKey) {
+        statusEl.innerHTML = `<span class="text-emerald-400">● Key Configured</span> — ${this.elevenStatus?.cached_audio_count || 0} clips cached (0ms latency)`;
       } else {
-        statusEl.innerHTML = `<span class="text-zinc-400">○ No Key Detected</span>. Paste key above or add <code class="text-zinc-300">ELEVENLABS_API_KEY</code> to <code class="text-zinc-300">.env</code>.`;
+        statusEl.innerHTML = `<span class="text-zinc-400">○ No Key Detected</span>. Paste <code class="text-zinc-300">sk_...</code> above or set in <code class="text-zinc-300">.env</code>.`;
       }
     }
 
@@ -294,12 +298,12 @@
         try {
           this.audioPlayer.pause();
           this.audioPlayer.currentTime = 0;
-        } catch (e) {}
+        } catch (e) { }
       }
       if ('speechSynthesis' in window) {
         try {
           window.speechSynthesis.cancel();
-        } catch (e) {}
+        } catch (e) { }
       }
       this.isSpeaking = false;
       this.currentUtterance = null;
@@ -566,7 +570,7 @@
                 <span class="text-[9px] text-zinc-500">(or set in .env)</span>
               </div>
               <div class="flex gap-2">
-                <input type="password" id="input-eleven-key" placeholder="xi-... (stored in browser)"
+                <input type="password" id="input-eleven-key" placeholder="sk_... (Secret API Key)"
                   class="flex-1 bg-zinc-900 border border-zinc-700 text-white rounded-lg px-2.5 py-1.5 text-xs font-mono focus:outline-none focus:border-white" />
                 <button id="btn-save-eleven-key" class="px-3 py-1.5 bg-white text-black font-bold rounded-lg text-xs hover:bg-zinc-200 transition shrink-0">
                   Save
@@ -1074,7 +1078,7 @@
         this.isAutoPlaying = true;
         this.updateAutoPlayUi(true);
         if (this.audioPlayer && this.audioPlayer.src && this.audioPlayer.paused && this.audioPlayer.currentTime > 0) {
-          this.audioPlayer.play().catch(() => {});
+          this.audioPlayer.play().catch(() => { });
         } else if ('speechSynthesis' in window && window.speechSynthesis.paused) {
           window.speechSynthesis.resume();
         } else if (!this.isSpeaking && this.voiceEnabled) {
