@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quantum Digital Signature (QDS) Cyber Threat Detection SOC</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+
+<body class="min-h-screen text-slate-100 flex flex-col justify-between">
+
+  <!-- Top Navigation Bar -->
+  <header
+    class="border-b border-slate-800 bg-slate-950/90 backdrop-blur-md sticky top-0 z-50 px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center space-x-3">
+      <div
+        class="w-10 h-10 rounded-lg overflow-hidden border border-indigo-500/40 bg-slate-900 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+        <img src="/static/assets/cover.png" alt="Quetzalcoatl Logo" class="w-full h-full object-cover" />
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <h1 class="text-sm md:text-base font-bold tracking-tight text-white flex items-center gap-2">
+            QUETZALCOATL
+            <span
+              class="text-[10px] font-semibold px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">QDS-SOC</span>
+          </h1>
+        </div>
+        <p class="text-xs text-slate-400">Teleportation-Based QDS • Non-ML Statistical Hypothesis Threat Detection •
+          Information-Theoretic Security</p>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-4 text-xs mono">
+      <div class="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span class="text-slate-400">STATUS:</span>
+        <span class="text-emerald-400 font-semibold" id="sys-status">ACTIVE</span>
+      </div>
+      <div class="hidden md:flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg">
+        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-cyan-400"></i>
+        <span class="text-slate-400">MERKLE ROOT:</span>
+        <span class="text-cyan-300 truncate max-w-[130px]" id="top-merkle-root">Loading...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tab Bar -->
+  <nav
+    class="bg-slate-950 border-b border-slate-800 px-6 py-2 flex items-center space-x-2 overflow-x-auto text-xs font-semibold">
+    <button onclick="switchTab('cockpit')" id="tab-btn-cockpit" data-explain-title="Live Threat Cockpit"
+      data-explain-body="Main operations center: real-time signature verdicts, quantum mismatch gauges, instant action triggers, and statistical evidence."
+      class="tab-btn active px-3.5 py-1.5 rounded-lg border border-slate-800 hover:text-cyan-400 flex items-center gap-1.5">
+      <i data-lucide="gauge" class="w-4 h-4"></i> Live Threat Cockpit
+    </button>
+    <button onclick="switchTab('circuit')" id="tab-btn-circuit" data-explain-title="Teleportation Circuit Lab"
+      data-explain-body="Interactive step-by-step visualizer of the 3-qubit Bennett teleportation protocol transmitting states without physical channels."
+      class="tab-btn px-3.5 py-1.5 rounded-lg border border-transparent hover:text-cyan-400 flex items-center gap-1.5 text-slate-400">
+      <i data-lucide="circuit-board" class="w-4 h-4"></i> Teleportation Circuit
+    </button>
+    <button onclick="switchTab('matrix')" id="tab-btn-matrix" data-explain-title="Attack Matrix"
+      data-explain-body="Direct side-by-side comparison table of all 5 threat models: legitimate vs forgery vs channel noise vs replay vs impersonation."
+      class="tab-btn px-3.5 py-1.5 rounded-lg border border-transparent hover:text-cyan-400 flex items-center gap-1.5 text-slate-400">
+      <i data-lucide="table-2" class="w-4 h-4"></i> Attack Matrix
+    </button>
+    <button onclick="switchTab('experiments')" id="tab-btn-experiments" data-explain-title="Monte Carlo Experiments"
+      data-explain-body="Automated Monte Carlo batch benchmark engine measuring empirical False Acceptance Rate (FAR), False Rejection Rate (FRR), and latency."
+      class="tab-btn px-3.5 py-1.5 rounded-lg border border-transparent hover:text-cyan-400 flex items-center gap-1.5 text-slate-400">
+      <i data-lucide="flask-conical" class="w-4 h-4"></i> Experiment Mode
+    </button>
+    <button onclick="switchTab('audit')" id="tab-btn-audit" data-explain-title="Merkle Audit Ledger"
+      data-explain-body="Tamper-evident append-only Merkle hash chain and Ethereum smart contract anchoring with interactive forensic tampering simulation."
+      class="tab-btn px-3.5 py-1.5 rounded-lg border border-transparent hover:text-cyan-400 flex items-center gap-1.5 text-slate-400">
+      <i data-lucide="file-lock-2" class="w-4 h-4"></i> Merkle Audit Trail
+    </button>
+    <button onclick="switchTab('multi-party')" id="tab-btn-multi-party" data-explain-title="Multi-Party Arbitration"
+      data-explain-body="Zeng-Christoph arbitration protocol proving Alice cannot repudiate a signed document when Bob transfers it to Charlie."
+      class="tab-btn px-3.5 py-1.5 rounded-lg border border-transparent hover:text-cyan-400 flex items-center gap-1.5 text-slate-400">
+      <i data-lucide="users" class="w-4 h-4"></i> Multi-Party Arbitration
+    </button>
+    <button onclick="switchTab('education')" id="tab-btn-education" data-explain-title="Educational Foundations"
+      data-explain-body="Plain-language deep-dive into quantum physics principles: No-Cloning Theorem, Heisenberg Uncertainty, and dual threshold derivation."
+      class="tab-btn px-3.5 py-1.5 rounded-lg border border-transparent hover:text-cyan-400 flex items-center gap-1.5 text-slate-400">
+      <i data-lucide="book-open" class="w-4 h-4"></i> Educational Guide
+    </button>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="p-6 max-w-7xl mx-auto w-full space-y-6 flex-grow">
+
+    <!-- TAB 1: LIVE THREAT COCKPIT -->
+    <div id="tab-cockpit" class="space-y-6">
+
+      <!-- Plain-English Quick Guide Banner -->
+      <div
+        class="p-4 rounded-xl bg-indigo-950/30 border border-indigo-500/20 text-xs flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 font-bold"><i data-lucide="sparkles"
+              class="w-5 h-5"></i></div>
+          <div>
+            <span class="font-bold text-white text-sm block">How Quantum Digital Signatures Work (In Simple
+              Terms)</span>
+            <span class="text-slate-300 text-xs">Unlike normal digital signatures that rely on math problems a
+              supercomputer could crack, quantum signatures use uncopyable quantum particles. If anyone attempts to
+              copy, tamper with, or forge the signature, the particles collapse and trigger an unmistakable error spike
+              that we detect instantly.</span>
+          </div>
+        </div>
+        <div class="text-[11px] text-indigo-300 font-medium flex items-center gap-1.5 mono">
+          <i data-lucide="info" class="w-3.5 h-3.5"></i> Hover any card or metric for a 5-sec simple explainer
+        </div>
+      </div>
+
+      <!-- SECTOR 01: EXECUTIVE STATUS & INSTANT VERDICT -->
+      <section class="sector-card" data-explain-title="Sector 1: Security Verdict"
+        data-explain-body="This sector displays the real-time verdict on the digital signature: ACCEPT (clean), ALERT (channel noise), or BLOCK (attack detected).">
+        <div class="sector-header">
+          <span class="sector-tag"><i data-lucide="shield-check" class="w-3 h-3"></i> Sector 01 / Executive Security
+            Verdict</span>
+          <div class="flex items-center space-x-2 text-xs mono">
+            <span class="text-slate-400">Active Session:</span>
+            <span class="font-bold text-indigo-300" id="ribbon-session-id">Loading...</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          <!-- Left: Big Status Card -->
+          <div class="lg:col-span-4 p-5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Security Verdict</span>
+              <span id="threat-type-badge" class="text-xs mono font-bold text-emerald-400">SAFE</span>
+            </div>
+            <div id="action-badge"
+              class="px-5 py-3 rounded-lg text-2xl font-black tracking-wider mono text-center badge-accept">
+              ACCEPT
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed" id="action-summary">
+              Signature cryptographically verified. Quantum state undisturbed.
+            </p>
+          </div>
+
+          <!-- Middle: Error Gauge & Thresholds -->
+          <div
+            class="lg:col-span-4 flex flex-col items-center justify-center p-4 bg-slate-900/50 rounded-xl border border-slate-800/80"
+            data-explain-title="Quantum Mismatch Gauge"
+            data-explain-body="Measures how many quantum particles did not match. Under 10% is normal optical noise; 34% proves an active intercept-resend attack.">
+            <div class="relative w-36 h-36 flex items-center justify-center">
+              <svg class="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="54" stroke="currentColor" stroke-width="8" class="text-slate-800"
+                  fill="transparent" />
+                <circle id="error-rate-circle" cx="60" cy="60" r="54" stroke="#10b981" stroke-width="8"
+                  class="score-circle" fill="transparent" stroke-dasharray="339.29" stroke-dashoffset="318"
+                  stroke-linecap="round" />
+              </svg>
+              <div class="absolute flex flex-col items-center justify-center text-center">
+                <span id="error-rate-val" class="text-2xl font-black mono text-white">3.0%</span>
+                <span class="text-[9px] text-slate-400 uppercase font-semibold">Mismatch Rate</span>
+              </div>
+            </div>
+            <div
+              class="flex items-center justify-between w-full pt-3 px-2 text-[11px] mono text-slate-400 border-t border-slate-800 mt-2">
+              <span>Pass: &le; <b class="text-emerald-400" id="ribbon-sv">10.0%</b> (sv)</span>
+              <span>Abort: &ge; <b class="text-rose-400" id="ribbon-sa">20.0%</b> (sa)</span>
+            </div>
+          </div>
+
+          <!-- Right: Instant Action Triggers -->
+          <div class="lg:col-span-4 space-y-2.5">
+            <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Instant Actions</span>
+            <button onclick="runLegitimateVerify()" data-explain-title="Verify Authentic Signature"
+              data-explain-body="Simulates an honest Alice-to-Bob transmission with normal physical optical noise (~3%). Verified with state fidelity F > 95%."
+              class="w-full py-2.5 px-4 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 text-xs font-bold text-emerald-300 flex items-center justify-center gap-2 transition">
+              <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> Test Authentic Signature (Clean)
+            </button>
+            <button onclick="simulateAttack('forgery')" data-explain-title="Simulate Quantum Forgery"
+              data-explain-body="Eve attempts to forge a signature without Alice's private basis. Quantum physics guarantees ~33% error, triggering an instant BLOCK."
+              class="w-full py-2.5 px-4 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-500/50 text-xs font-bold text-rose-300 flex items-center justify-center gap-2 transition">
+              <i data-lucide="fingerprint" class="w-4 h-4 text-rose-400"></i> Test Quantum Forgery Attack (~34% Err)
+            </button>
+            <button onclick="createNewSession()" data-explain-title="New Signing Session"
+              data-explain-body="Generates a fresh set of pre-shared Bell pairs and Alice private keys with a new cryptographic session ID."
+              class="w-full py-2 px-4 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 flex items-center justify-center gap-2 transition">
+              <i data-lucide="plus" class="w-3.5 h-3.5 text-indigo-400"></i> Initialize Fresh Session
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTOR 02: THE 3-STEP QUANTUM PIPELINE -->
+      <section class="sector-card" data-explain-title="Sector 2: Quantum Pipeline"
+        data-explain-body="The physical 3-step lifecycle: Alice prepares secret quantum states, teleports them via entangled Bell pairs, and Bob verifies them.">
+        <div class="sector-header">
+          <span class="sector-tag"><i data-lucide="git-commit" class="w-3 h-3"></i> Sector 02 / The 3-Step Quantum
+            Pipeline</span>
+          <span class="text-xs text-slate-400 mono">Bennett Teleportation Architecture</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <!-- Step 1 -->
+          <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2"
+            data-explain-title="Step 1: Alice Preparation"
+            data-explain-body="Alice encodes private bits into non-orthogonal quantum states (Z, X, or Y basis) that cannot be cloned by anyone.">
+            <div class="flex items-center gap-2 text-indigo-400 font-bold">
+              <span class="w-5 h-5 rounded-full bg-indigo-500/20 flex items-center justify-center text-[10px]">1</span>
+              <span>Alice Signs Document</span>
+            </div>
+            <p class="text-slate-400 text-[11px] leading-relaxed">
+              Encodes private random quantum states $|\psi_k\rangle \in \{Z, X, Y\}$ bound to the document message hash.
+            </p>
+            <div class="p-2 rounded bg-slate-950 text-[10px] mono text-indigo-300">
+              States: |0>, |1>, |+>, |->, |+i>, |-i>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2"
+            data-explain-title="Step 2: Quantum Teleportation"
+            data-explain-body="Alice uses Bell-state entanglement to teleport the states to Bob. Alice only transmits 2 classical bits (b1, b2) over the wire.">
+            <div class="flex items-center gap-2 text-purple-400 font-bold">
+              <span class="w-5 h-5 rounded-full bg-purple-500/20 flex items-center justify-center text-[10px]">2</span>
+              <span>Teleportation Channel</span>
+            </div>
+            <p class="text-slate-400 text-[11px] leading-relaxed">
+              Alice measures Bell pairs (BSM) and transmits correction bits $(b_1, b_2)$. Bob applies Pauli correction
+              $U = Z^{b_1} X^{b_2}$.
+            </p>
+            <div class="p-2 rounded bg-slate-950 text-[10px] mono text-purple-300">
+              Noiseless Fidelity: F = 1.0000
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2"
+            data-explain-title="Step 3: Bob Verification"
+            data-explain-body="Alice announces which basis she used. Bob measures his qubits. If error rate is low, Bob accepts. If disturbed, Bob rejects.">
+            <div class="flex items-center gap-2 text-emerald-400 font-bold">
+              <span class="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px]">3</span>
+              <span>Bob Verifies & Audits</span>
+            </div>
+            <p class="text-slate-400 text-[11px] leading-relaxed">
+              Bob measures in Alice's announced basis, calculates mismatch rate $e$, and checks against dual thresholds
+              $(s_v, s_a)$.
+            </p>
+            <div class="p-2 rounded bg-slate-950 text-[10px] mono text-emerald-300">
+              Decision: Accept if e &le; 10%
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTOR 03: CYBER THREAT SIMULATION LAB -->
+      <section class="sector-card" data-explain-title="Sector 3: Attack Simulation Lab"
+        data-explain-body="Simulate 5 realistic cyber attacks against the QDS protocol to test how quantum physics and non-ML statistics detect them.">
+        <div class="sector-header">
+          <span class="sector-tag"><i data-lucide="swords" class="w-3 h-3"></i> Sector 03 / Threat Simulation Lab (5
+            Scenarios)</span>
+          <span class="text-xs text-slate-400 mono">Controlled Physics & Protocol Attacks</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs">
+          <!-- 1. Forgery -->
+          <button onclick="simulateAttack('forgery')" data-explain-title="Quantum Forgery Attack"
+            data-explain-body="Eve tries to sign a fake document. Because Eve doesn't know Alice's basis choices, her measurements collapse the states and cause an irreducible ~33.3% mismatch rate!"
+            class="p-3.5 rounded-xl bg-slate-900 hover:bg-slate-800/90 border border-rose-500/30 hover:border-rose-500 text-left space-y-2 transition flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-rose-300">1. Forgery</span>
+                <span class="text-[9px] px-1 py-0.5 rounded bg-rose-950 text-rose-400 mono font-bold">~34% ERR</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Intercept-resend basis guessing; state collapse disturbance.
+              </p>
+            </div>
+            <div class="text-[10px] font-bold text-rose-400 flex items-center gap-1"><i data-lucide="play"
+                class="w-3 h-3"></i> Test Attack</div>
+          </button>
+
+          <!-- 2. Channel Manipulation -->
+          <button onclick="simulateAttack('channel_manipulation')" data-explain-title="Channel Manipulation"
+            data-explain-body="Adversary introduces 22% optical noise into the fiber. Error rate (~15%) exceeds normal noise (10%) but stays under forgery (20%), triggering an ALERT."
+            class="p-3.5 rounded-xl bg-slate-900 hover:bg-slate-800/90 border border-amber-500/30 hover:border-amber-500 text-left space-y-2 transition flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-amber-300">2. Channel Noise</span>
+                <span class="text-[9px] px-1 py-0.5 rounded bg-amber-950 text-amber-400 mono font-bold">ALERT</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Elevated 22% depolarizing noise in optical quantum channel.</p>
+            </div>
+            <div class="text-[10px] font-bold text-amber-400 flex items-center gap-1"><i data-lucide="play"
+                class="w-3 h-3"></i> Test Attack</div>
+          </button>
+
+          <!-- 3. Replay -->
+          <button onclick="simulateAttack('replay')" data-explain-title="Replay Attack"
+            data-explain-body="Adversary replays old classical bits from a previous session. Because quantum states are single-use, the target Bell pairs are already consumed, failing the replay!"
+            class="p-3.5 rounded-xl bg-slate-900 hover:bg-slate-800/90 border border-rose-500/30 hover:border-rose-500 text-left space-y-2 transition flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-rose-300">3. Replay</span>
+                <span class="text-[9px] px-1 py-0.5 rounded bg-rose-950 text-rose-400 mono font-bold">BLOCK</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Stale classical bits replayed against single-use Bell pairs.
+              </p>
+            </div>
+            <div class="text-[10px] font-bold text-rose-400 flex items-center gap-1"><i data-lucide="play"
+                class="w-3 h-3"></i> Test Attack</div>
+          </button>
+
+          <!-- 4. Impersonation -->
+          <button onclick="simulateAttack('impersonation')" data-explain-title="Signer Impersonation"
+            data-explain-body="Adversary pretends to be Alice without valid pre-shared entanglement credentials. Rejected at protocol zero-trust boundary."
+            class="p-3.5 rounded-xl bg-slate-900 hover:bg-slate-800/90 border border-rose-500/30 hover:border-rose-500 text-left space-y-2 transition flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-rose-300">4. Impersonation</span>
+                <span class="text-[9px] px-1 py-0.5 rounded bg-rose-950 text-rose-400 mono font-bold">BLOCK</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Rogue entity transmitting without valid EPR identity binding.
+              </p>
+            </div>
+            <div class="text-[10px] font-bold text-rose-400 flex items-center gap-1"><i data-lucide="play"
+                class="w-3 h-3"></i> Test Attack</div>
+          </button>
+
+          <!-- 5. Unauthorized -->
+          <button onclick="simulateAttack('unauthorized')" data-explain-title="Unauthorized Verifier"
+            data-explain-body="Third party attempts to verify tokens without access control credentials. Access control blocks request instantly."
+            class="p-3.5 rounded-xl bg-slate-900 hover:bg-slate-800/90 border border-rose-500/30 hover:border-rose-500 text-left space-y-2 transition flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-rose-300">5. Unauthorized</span>
+                <span class="text-[9px] px-1 py-0.5 rounded bg-rose-950 text-rose-400 mono font-bold">BLOCK</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Third-party attempting verification without RBAC role.</p>
+            </div>
+            <div class="text-[10px] font-bold text-rose-400 flex items-center gap-1"><i data-lucide="play"
+                class="w-3 h-3"></i> Test Attack</div>
+          </button>
+        </div>
+      </section>
+
+      <!-- SECTOR 04: MATHEMATICAL EVIDENCE & EXPLAINABILITY -->
+      <section class="sector-card" data-explain-title="Sector 4: Scientific Evidence"
+        data-explain-body="Strictly non-ML mathematical proofs. Shows binomial p-values, Wald SPRT early-stopping tests, and Hoeffding bounds.">
+        <div class="sector-header">
+          <span class="sector-tag"><i data-lucide="binary" class="w-3 h-3"></i> Sector 04 / Scientific Evidence
+            (Strictly Non-ML)</span>
+          <span class="text-xs text-slate-400 mono">Exact Statistical Inference Tests</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs mono">
+          <!-- Card 1: Binomial p-value -->
+          <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1.5"
+            data-explain-title="Binomial Test (p-value)"
+            data-explain-body="Calculates the exact mathematical probability that the observed errors could have happened by random background noise alone. If p < 0.001, it's 99.9% proven to be an attack!">
+            <span class="text-[10px] text-slate-400 uppercase font-semibold">Binomial p-value (H0)</span>
+            <div class="text-xl font-bold text-cyan-300" id="stat-p-value">1.000</div>
+            <p class="text-[10px] text-slate-400 font-sans">Odds of purely random noise.</p>
+          </div>
+
+          <!-- Card 2: Wald SPRT -->
+          <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1.5"
+            data-explain-title="Wald's SPRT (Early Stopping)"
+            data-explain-body="A sequential test that decides whether to accept or reject after each qubit. Saves 75-90% of quantum resources by stopping early when an attack is obvious!">
+            <span class="text-[10px] text-slate-400 uppercase font-semibold">Wald SPRT Early Stop</span>
+            <div class="text-sm font-bold text-emerald-400 truncate" id="stat-sprt-decision">ACCEPT_H0 (Saved 80%)</div>
+            <p class="text-[10px] text-slate-400 font-sans">Stops early to conserve qubits.</p>
+          </div>
+
+          <!-- Card 3: Hoeffding Bound -->
+          <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1.5"
+            data-explain-title="Hoeffding Forgery Bound"
+            data-explain-body="Mathematical upper bound guaranteeing the probability that a forgery could slip past our verification undetected is less than 1 in 100,000,000!">
+            <span class="text-[10px] text-slate-400 uppercase font-semibold">Hoeffding Forgery Bound</span>
+            <div class="text-xl font-bold text-purple-300" id="stat-hoeffding">&le; 1e-8</div>
+            <p class="text-[10px] text-slate-400 font-sans">Upper bound on forgery escape.</p>
+          </div>
+
+          <!-- Card 4: KL Divergence -->
+          <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1.5"
+            data-explain-title="Kullback-Leibler Divergence"
+            data-explain-body="Measures the information-theoretic distance between normal noise and observed quantum disturbance. Spikes to >0.30 nats under attack.">
+            <span class="text-[10px] text-slate-400 uppercase font-semibold">KL Divergence (D_KL)</span>
+            <div class="text-xl font-bold text-indigo-300" id="stat-kl-div">0.0000 nats</div>
+            <p class="text-[10px] text-slate-400 font-sans">Information distance from noise.</p>
+          </div>
+        </div>
+
+        <!-- Mathematical Reasoning Breakdown Banner -->
+        <div class="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1 mt-3">
+          <span class="text-[11px] font-bold text-slate-300 flex items-center gap-1.5 uppercase">
+            <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-400"></i> Mathematical Explanation
+          </span>
+          <ul id="reasons-list" class="text-xs space-y-1 text-slate-300">
+            <li class="text-emerald-400">Protocol operational. Awaiting verification run.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- SECTOR 05: MEASUREMENT TELEMETRY & TOKEN LOG -->
+      <section class="sector-card" data-explain-title="Sector 5: Quantum Telemetry"
+        data-explain-body="View measurements across all 3 Pauli conjugate bases (Z, X, Y) and inspect individual quantum tokens.">
+        <div class="sector-header">
+          <span class="sector-tag"><i data-lucide="bar-chart-2" class="w-3 h-3"></i> Sector 05 / Measurement Telemetry &
+            Token Log</span>
+          <span class="text-xs text-slate-400 mono">Z, X, Y Observables</span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- Basis Chart (5 cols) -->
+          <div class="lg:col-span-5 p-4 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2">
+            <span class="text-[11px] font-bold text-slate-300 block">Matches vs Mismatches by Basis</span>
+            <div class="h-44 w-full">
+              <canvas id="basisChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Token Log (7 cols) -->
+          <div class="lg:col-span-7 p-4 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-slate-300">Quantum Token Verification Inspector</span>
+              <span class="text-[10px] text-slate-500 mono">Sample Preview</span>
+            </div>
+            <div class="overflow-x-auto max-h-44 overflow-y-auto">
+              <table class="w-full text-left text-[11px] mono">
+                <thead class="text-slate-400 border-b border-slate-800 bg-slate-950/60">
+                  <tr>
+                    <th class="py-1 px-2">Idx</th>
+                    <th class="py-1 px-2">Basis</th>
+                    <th class="py-1 px-2">Alice Disclosed</th>
+                    <th class="py-1 px-2">Bob Measured</th>
+                    <th class="py-1 px-2 text-right">Result</th>
+                  </tr>
+                </thead>
+                <tbody id="token-preview-tbody" class="divide-y divide-slate-800/60 text-slate-300">
+                  <tr>
+                    <td colspan="5" class="py-3 text-center text-slate-500 italic">No tokens verified yet</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- TAB 2: TELEPORTATION CIRCUIT LAB -->
+    <div id="tab-circuit" class="space-y-6 hidden">
+      <div class="glass-panel p-6 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="circuit-board" class="w-5 h-5 text-cyan-400"></i> 3-Qubit Quantum Teleportation Protocol
+            Inspection
+          </h2>
+          <button onclick="refreshCircuitSample()"
+            class="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-xs text-cyan-400 flex items-center gap-1">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Re-Sample Circuit
+          </button>
+        </div>
+
+        <p class="text-xs text-slate-400">
+          Mathematically exact simulation of the Bennett et al. (1993) teleportation protocol used to transmit Alice's
+          secret Pauli eigenstates without a physical quantum communication channel during verification.
+        </p>
+
+        <!-- Circuit Step Timeline Graphic -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs mono pt-2">
+          <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 space-y-1.5">
+            <span class="text-[10px] text-cyan-400 font-bold block">1. STATE PREPARATION</span>
+            <span class="text-slate-200 block text-xs" id="circ-in-state">|&psi;&gt; = |+&gt;</span>
+            <span class="text-slate-500 text-[10px] block" id="circ-bloch-in">Bloch: (1.0, 0, 0)</span>
+          </div>
+          <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 space-y-1.5">
+            <span class="text-[10px] text-purple-400 font-bold block">2. EPR PAIR</span>
+            <span class="text-slate-200 block text-xs">|&Phi;+&gt; on (A2, B)</span>
+            <span class="text-slate-500 text-[10px] block">(|00&gt; + |11&gt;)/&radic;2</span>
+          </div>
+          <div class="p-3 bg-slate-900 rounded-lg border border-cyan-800/60 bg-cyan-950/20 space-y-1.5">
+            <span class="text-[10px] text-cyan-300 font-bold block">3. BELL MEASUREMENT</span>
+            <span class="text-cyan-200 block text-xs" id="circ-bsm-out">Outcome: |Phi+&gt;</span>
+            <span class="text-slate-400 text-[10px] block">Alice measures (A1, A2)</span>
+          </div>
+          <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 space-y-1.5">
+            <span class="text-[10px] text-yellow-400 font-bold block">4. CLASSICAL FEEDFORWARD</span>
+            <span class="text-slate-200 block text-xs" id="circ-bits">Bits: (b1=0, b2=0)</span>
+            <span class="text-slate-500 text-[10px] block">Sent to Bob</span>
+          </div>
+          <div class="p-3 bg-slate-900 rounded-lg border border-emerald-800/60 bg-emerald-950/20 space-y-1.5">
+            <span class="text-[10px] text-emerald-400 font-bold block">5. PAULI CORRECTION</span>
+            <span class="text-emerald-300 block text-xs" id="circ-corr">U = I</span>
+            <span class="text-emerald-400 text-[10px] block font-bold" id="circ-fidelity">Fidelity: 1.0000</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: ATTACK COMPARISON MATRIX -->
+    <div id="tab-matrix" class="space-y-6 hidden">
+      <div class="glass-panel p-6 space-y-4">
+        <h2 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="table-2" class="w-5 h-5 text-cyan-400"></i> QDS Attack Comparison Matrix
+        </h2>
+        <p class="text-xs text-slate-400">
+          Theoretical and simulated operational behavior across all 5 threat models:
+        </p>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs mono">
+            <thead class="bg-slate-900 border-b border-slate-800 text-slate-400">
+              <tr>
+                <th class="py-2.5 px-3">Scenario</th>
+                <th class="py-2.5 px-3">Attack Mechanism</th>
+                <th class="py-2.5 px-3">Expected Error (e)</th>
+                <th class="py-2.5 px-3">Protocol State</th>
+                <th class="py-2.5 px-3">Statistical Test</th>
+                <th class="py-2.5 px-3">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 text-slate-300">
+              <tr class="hover:bg-slate-900/40">
+                <td class="py-2.5 px-3 text-emerald-400 font-bold">Normal Legitimate</td>
+                <td class="py-2.5 px-3">Authentic teleportation</td>
+                <td class="py-2.5 px-3 text-emerald-300">~ 3% (&le; sv)</td>
+                <td class="py-2.5 px-3 text-emerald-400">VALID</td>
+                <td class="py-2.5 px-3">p-val &gt; 0.05</td>
+                <td class="py-2.5 px-3"><span
+                    class="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 font-bold">ACCEPT</span></td>
+              </tr>
+              <tr class="hover:bg-slate-900/40">
+                <td class="py-2.5 px-3 text-rose-400 font-bold">Quantum Forgery</td>
+                <td class="py-2.5 px-3">Intercept-resend basis guessing</td>
+                <td class="py-2.5 px-3 text-rose-400 font-bold">~ 33.3% (&ge; sa)</td>
+                <td class="py-2.5 px-3 text-emerald-400">VALID</td>
+                <td class="py-2.5 px-3 text-rose-400">p-val &lt; 1e-10</td>
+                <td class="py-2.5 px-3"><span
+                    class="px-2 py-0.5 rounded bg-rose-950 text-rose-400 font-bold">BLOCK</span></td>
+              </tr>
+              <tr class="hover:bg-slate-900/40">
+                <td class="py-2.5 px-3 text-amber-400 font-bold">Channel Manipulation</td>
+                <td class="py-2.5 px-3">22% Depolarizing channel noise</td>
+                <td class="py-2.5 px-3 text-amber-300">~ 14.7% (sv &lt; e &lt; sa)</td>
+                <td class="py-2.5 px-3 text-emerald-400">VALID</td>
+                <td class="py-2.5 px-3 text-amber-400">p-val &lt; 1e-3</td>
+                <td class="py-2.5 px-3"><span
+                    class="px-2 py-0.5 rounded bg-amber-950 text-amber-400 font-bold">ALERT</span></td>
+              </tr>
+              <tr class="hover:bg-slate-900/40">
+                <td class="py-2.5 px-3 text-rose-400 font-bold">Replay Attack</td>
+                <td class="py-2.5 px-3">Replay stale classical bits</td>
+                <td class="py-2.5 px-3 text-slate-400">N/A (Reused)</td>
+                <td class="py-2.5 px-3 text-rose-400 font-bold">NONCE REUSED</td>
+                <td class="py-2.5 px-3">Session Hash Check</td>
+                <td class="py-2.5 px-3"><span
+                    class="px-2 py-0.5 rounded bg-rose-950 text-rose-400 font-bold">BLOCK</span></td>
+              </tr>
+              <tr class="hover:bg-slate-900/40">
+                <td class="py-2.5 px-3 text-rose-400 font-bold">Impersonation</td>
+                <td class="py-2.5 px-3">Spoofed Alice identity credentials</td>
+                <td class="py-2.5 px-3 text-slate-400">N/A (Spoofed)</td>
+                <td class="py-2.5 px-3 text-rose-400 font-bold">INVALID SIGNER</td>
+                <td class="py-2.5 px-3">Registry Authentication</td>
+                <td class="py-2.5 px-3"><span
+                    class="px-2 py-0.5 rounded bg-rose-950 text-rose-400 font-bold">BLOCK</span></td>
+              </tr>
+              <tr class="hover:bg-slate-900/40">
+                <td class="py-2.5 px-3 text-rose-400 font-bold">Unauthorized Verifier</td>
+                <td class="py-2.5 px-3">Rogue entity accessing endpoint</td>
+                <td class="py-2.5 px-3 text-slate-400">N/A (Access Denied)</td>
+                <td class="py-2.5 px-3 text-rose-400 font-bold">NO PERMISSION</td>
+                <td class="py-2.5 px-3">RBAC Access Control</td>
+                <td class="py-2.5 px-3"><span
+                    class="px-2 py-0.5 rounded bg-rose-950 text-rose-400 font-bold">BLOCK</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: EXPERIMENT MODE (MONTE CARLO) -->
+    <div id="tab-experiments" class="space-y-6 hidden">
+      <div class="glass-panel p-6 space-y-4">
+        <h2 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="flask-conical" class="w-5 h-5 text-purple-400"></i> Monte Carlo Security Evaluation Engine
+        </h2>
+        <p class="text-xs text-slate-400">
+          Run batches of N independent trials to measure empirical False Acceptance Rate (FAR), False Rejection Rate
+          (FRR), and detection latency without simulated or hardcoded values:
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+          <div>
+            <label class="block text-slate-400 mb-1">Scenario to Benchmark:</label>
+            <select id="exp-scenario"
+              class="w-full p-2 rounded bg-slate-900 border border-slate-700 text-white font-semibold">
+              <option value="none">Legitimate (Measure FRR)</option>
+              <option value="forgery" selected>Forgery (Measure FAR)</option>
+              <option value="channel_manipulation">Channel Manipulation (Alert Rate)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Number of Trials (K):</label>
+            <input type="number" id="exp-trials" value="30" min="5" max="100"
+              class="w-full p-2 rounded bg-slate-900 border border-slate-700 text-white font-mono">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Tokens per Signature (N):</label>
+            <input type="number" id="exp-tokens" value="150" min="20" max="500"
+              class="w-full p-2 rounded bg-slate-900 border border-slate-700 text-white font-mono">
+          </div>
+          <div class="flex items-end">
+            <button onclick="runExperimentBatch()"
+              class="w-full py-2 px-4 rounded-lg bg-purple-600 hover:bg-purple-500 font-bold text-white flex items-center justify-center gap-2">
+              <i data-lucide="play" class="w-4 h-4"></i> Run Benchmark
+            </button>
+          </div>
+        </div>
+
+        <!-- Experiment Results Card -->
+        <div id="exp-results-card" class="hidden p-4 rounded-lg bg-slate-900 border border-slate-800 space-y-3">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs mono">
+            <div class="p-2.5 bg-slate-950 rounded border border-slate-800">
+              <span class="text-slate-400 block text-[10px]">EMPIRICAL FAR</span>
+              <span class="font-bold text-rose-400 text-sm" id="res-far">0.00%</span>
+            </div>
+            <div class="p-2.5 bg-slate-950 rounded border border-slate-800">
+              <span class="text-slate-400 block text-[10px]">EMPIRICAL FRR</span>
+              <span class="font-bold text-emerald-400 text-sm" id="res-frr">0.00%</span>
+            </div>
+            <div class="p-2.5 bg-slate-950 rounded border border-slate-800">
+              <span class="text-slate-400 block text-[10px]">MEAN ERROR RATE</span>
+              <span class="font-bold text-cyan-300 text-sm" id="res-mean-err">0.00%</span>
+            </div>
+            <div class="p-2.5 bg-slate-950 rounded border border-slate-800">
+              <span class="text-slate-400 block text-[10px]">TOTAL BENCHMARK TIME</span>
+              <span class="font-bold text-yellow-300 text-sm" id="res-time">0 ms</span>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-300 italic" id="res-summary"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: MERKLE AUDIT TRAIL -->
+    <div id="tab-audit" class="space-y-6 hidden">
+      <div class="glass-panel p-6 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="file-lock-2" class="w-5 h-5 text-emerald-400"></i> Tamper-Evident Merkle Hash Chain Audit
+            Ledger
+          </h2>
+          <span class="text-xs text-slate-400 mono">Append-Only SHA-256</span>
+        </div>
+        <p class="text-xs text-slate-400">
+          Every QDS verification event is anchored into a cryptographic Merkle tree and hash chain for dispute
+          non-repudiation:
+        </p>
+
+        <!-- Blockchain Anchoring & Forensic Tamper Lab -->
+        <div class="p-4 rounded-lg bg-slate-900/90 border border-cyan-500/30 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+            <div class="flex items-center gap-2">
+              <div class="p-1.5 rounded bg-cyan-500/10 text-cyan-400"><i data-lucide="blocks" class="w-4 h-4"></i></div>
+              <div>
+                <h3 class="text-xs font-bold text-white">On-Chain Evidence Registry & Forensic Tamper Lab</h3>
+                <p class="text-[11px] text-slate-400">Cryptographically anchors Merkle roots to Ethereum Sepolia /
+                  Hyperledger EVM contract</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span
+                class="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 mono font-bold">
+                <i data-lucide="check-circle" class="w-3 h-3 inline mr-1"></i> ANCHORED
+              </span>
+              <button onclick="runTamperDemo()"
+                class="px-3 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-500/50 text-xs font-bold text-rose-300 flex items-center gap-1.5 transition">
+                <i data-lucide="alert-octagon" class="w-3.5 h-3.5 text-rose-400"></i> Simulate Local Log Tampering
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs mono">
+            <div class="p-2 bg-slate-950 rounded border border-slate-800">
+              <span class="text-slate-400 block text-[9px]">SMART CONTRACT</span>
+              <span class="text-cyan-300 font-bold">QuetzalcoatlEvidenceRegistry.sol</span>
+            </div>
+            <div class="p-2 bg-slate-950 rounded border border-slate-800">
+              <span class="text-slate-400 block text-[9px]">ANCHOR ADDRESS (EVM)</span>
+              <span class="text-purple-300 font-bold truncate block">0x9F8F72aA9304c8B593d555F12eF6589cC3A579A2</span>
+            </div>
+            <div class="p-2 bg-slate-950 rounded border border-slate-800">
+              <span class="text-slate-400 block text-[9px]">PROOF VERIFICATION</span>
+              <span class="text-emerald-400 font-bold">Pure SHA-256 On-Chain Verify</span>
+            </div>
+          </div>
+
+          <!-- Tamper Demonstration Output Area -->
+          <div id="tamper-demo-output" class="hidden p-3 rounded-lg bg-slate-950 border border-rose-900/60 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+                <i data-lucide="shield-alert" class="w-4 h-4 text-rose-400"></i>
+                FORENSIC AUDIT: MALICIOUS LOCAL LOG ALTERATION DETECTED
+              </h4>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-rose-900/40 text-rose-400 mono font-bold"
+                id="tamper-status-badge">
+                CRITICAL_BREACH
+              </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs mono">
+              <div class="p-2.5 rounded bg-slate-900/80 border border-slate-800 space-y-1">
+                <span class="text-slate-400 block text-[9px] font-bold text-emerald-400">ORIGINAL AUDIT RECORD
+                  (#2)</span>
+                <div class="text-[11px] space-y-0.5 text-slate-300">
+                  <div>Threat: <span class="text-rose-400 font-bold">FORGERY</span> | Action: <span
+                      class="text-rose-400 font-bold">BLOCK</span></div>
+                  <div>Mismatches: <span class="text-yellow-400">68 / 200 (34.0%)</span></div>
+                  <div>Original Leaf Hash: <span class="text-cyan-300 truncate block text-[10px]"
+                      id="tamper-orig-leaf">...</span></div>
+                </div>
+              </div>
+
+              <div class="p-2.5 rounded bg-slate-900/80 border border-rose-800/40 space-y-1">
+                <span class="text-slate-400 block text-[9px] font-bold text-rose-400">MALICIOUSLY ALTERED RECORD
+                  (#2)</span>
+                <div class="text-[11px] space-y-0.5 text-slate-300">
+                  <div>Threat: <span class="text-slate-500 line-through">SAFE</span> | Action: <span
+                      class="text-slate-500 line-through">ACCEPT</span></div>
+                  <div>Mismatches: <span class="text-rose-400">2 / 200 (1.0%) [FALSIFIED]</span></div>
+                  <div>Recalculated Leaf: <span class="text-rose-400 truncate block text-[10px]"
+                      id="tamper-mod-leaf">...</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-2 rounded bg-rose-950/40 border border-rose-800 text-[11px] text-rose-200"
+              id="tamper-analysis-text">
+              Recalculated hash differs from ledger. Merkle inclusion proof evaluated to FALSE: Tampering mathematically
+              proven.
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto max-h-72 overflow-y-auto">
+          <table class="w-full text-left text-xs mono">
+            <thead class="text-slate-400 border-b border-slate-800 bg-slate-900/50">
+              <tr>
+                <th class="py-2 px-2">Idx</th>
+                <th class="py-2 px-2">Session ID</th>
+                <th class="py-2 px-2">Threat Type</th>
+                <th class="py-2 px-2">Action</th>
+                <th class="py-2 px-2">Error Rate</th>
+                <th class="py-2 px-2 text-right">Inclusion Proof</th>
+              </tr>
+            </thead>
+            <tbody id="full-audit-tbody" class="divide-y divide-slate-800/60 text-slate-300">
+              <tr>
+                <td colspan="6" class="py-3 text-center text-slate-500 italic">No events recorded</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: MULTI-PARTY ARBITRATION (NON-REPUDIATION) -->
+    <div id="tab-multi-party" class="space-y-6 hidden">
+      <div class="glass-panel p-6 space-y-5">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i data-lucide="users" class="w-5 h-5 text-cyan-400"></i> Multi-Party Non-Repudiation & Dispute
+              Arbitration
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">
+              Alice signs to Bob & Charlie via teleportation. Bob forwards the signature to Charlie; dispute arbitration
+              confirms Alice cannot repudiate.
+            </p>
+          </div>
+          <span class="text-xs text-cyan-400 mono font-bold">Zeng-Christoph Protocol</span>
+        </div>
+
+        <!-- Protocol Flow Diagram -->
+        <div
+          class="p-4 rounded-lg bg-slate-900/80 border border-slate-800 text-xs flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-2">
+            <div class="p-2 rounded bg-cyan-500/10 text-cyan-400 font-bold">Alice (Signer)</div>
+            <i data-lucide="arrow-right" class="w-4 h-4 text-slate-500"></i>
+            <div class="p-2 rounded bg-purple-500/10 text-purple-400 font-bold">Bob (Recipient)</div>
+            <i data-lucide="arrow-right" class="w-4 h-4 text-slate-500"></i>
+            <div class="p-2 rounded bg-emerald-500/10 text-emerald-400 font-bold">Charlie (Arbitrator)</div>
+          </div>
+          <div class="text-[11px] text-slate-400 mono">
+            Acceptance Gap: <span class="text-cyan-300 font-bold">&Delta; = s_a - s_v = 10.0%</span>
+          </div>
+        </div>
+
+        <!-- Simulation Actions -->
+        <div class="flex flex-wrap gap-3">
+          <button onclick="simulateMultiParty(false)"
+            class="px-4 py-2 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 text-xs font-bold text-emerald-300 flex items-center gap-2 transition">
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> Simulate Legitimate Signature Transfer
+          </button>
+          <button onclick="simulateMultiParty(true)"
+            class="px-4 py-2 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-500/50 text-xs font-bold text-rose-300 flex items-center gap-2 transition">
+            <i data-lucide="x-circle" class="w-4 h-4 text-rose-400"></i> Simulate Alice Repudiation Attack
+          </button>
+        </div>
+
+        <!-- Arbitration Results Panel -->
+        <div id="multi-party-results" class="hidden space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs mono">
+            <!-- Bob Card -->
+            <div class="p-4 rounded-lg bg-slate-900 border border-slate-800 space-y-2">
+              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Bob Direct Verification</span>
+              <div class="text-lg font-bold text-emerald-400" id="mp-bob-verdict">ACCEPT_SIGNATURE</div>
+              <div class="text-slate-300 text-xs">Error Rate: <span class="font-bold text-cyan-300"
+                  id="mp-bob-err">2.5%</span></div>
+              <div class="text-slate-400 text-[10px]">Condition: e_Bob &le; s_v (10.0%)</div>
+            </div>
+
+            <!-- Charlie Card -->
+            <div class="p-4 rounded-lg bg-slate-900 border border-slate-800 space-y-2">
+              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Charlie Forwarded
+                Verification</span>
+              <div class="text-lg font-bold text-emerald-400" id="mp-charlie-verdict">NON_REPUDIABLE_VALID</div>
+              <div class="text-slate-300 text-xs">Error Rate: <span class="font-bold text-cyan-300"
+                  id="mp-charlie-err">3.0%</span></div>
+              <div class="text-slate-400 text-[10px]">Condition: e_Charlie &le; s_a (20.0%)</div>
+            </div>
+
+            <!-- Dispute Gap Card -->
+            <div class="p-4 rounded-lg bg-slate-900 border border-slate-800 space-y-2">
+              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Transferability Gap Analysis</span>
+              <div class="text-lg font-bold text-purple-300" id="mp-gap-val">|e_B - e_C| = 0.5%</div>
+              <div class="text-slate-300 text-xs">Allowed Threshold: <span class="font-bold text-yellow-300">&le; 10.0%
+                  (&Delta;)</span></div>
+              <div class="text-[10px] font-bold text-emerald-400" id="mp-gap-status">WITHIN TOLERANCE</div>
+            </div>
+          </div>
+
+          <!-- Overall Summary Banner -->
+          <div id="mp-summary-banner"
+            class="p-4 rounded-lg border border-emerald-700/60 bg-emerald-950/40 font-bold text-xs flex items-center justify-between text-emerald-300">
+            <span id="mp-summary-text">Information-Theoretic Non-Repudiation Verified.</span>
+            <span id="mp-theorem-badge"
+              class="px-2.5 py-1 rounded text-[10px] mono bg-emerald-900 text-emerald-300">Zeng-Christoph Proven</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: EDUCATIONAL GUIDE -->
+    <div id="tab-education" class="space-y-6 hidden">
+      <div class="glass-panel p-6 space-y-4">
+        <h2 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="book-open" class="w-5 h-5 text-cyan-400"></i> QDS Foundations & Theoretical Explainability
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-300">
+          <div class="p-4 rounded-lg bg-slate-900 border border-slate-800 space-y-2">
+            <h3 class="font-bold text-cyan-400 flex items-center gap-1.5"><i data-lucide="atom" class="w-4 h-4"></i> Why
+              Can't Eve Clone the Signature?</h3>
+            <p class="leading-relaxed text-slate-400">
+              By the Quantum No-Cloning Theorem (Wootters & Zurek 1982), non-orthogonal states $|0\rangle, |1\rangle,
+              |+\rangle, |-\rangle, |+i\rangle, |-i\rangle$ cannot be cloned. Any attempt by Eve to measure and
+              duplicate the states collapses them into Eve's chosen basis, introducing an irreducible ~33.3% error rate
+              upon Bob's verification!
+            </p>
+          </div>
+          <div class="p-4 rounded-lg bg-slate-900 border border-slate-800 space-y-2">
+            <h3 class="font-bold text-purple-400 flex items-center gap-1.5"><i data-lucide="binary" class="w-4 h-4"></i>
+              Why Dual Thresholds (sv, sa)?</h3>
+            <p class="leading-relaxed text-slate-400">
+              Physical optical fibers and detector dark counts cause baseline noise (p0 ~ 3%). The verification
+              threshold sv=10% allows normal noise through. The abort threshold sa=20% guarantees that active forgeries
+              (~33%) are reliably rejected with exponentially small False Acceptance Rate bounded by Hoeffding's
+              inequality.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal: Merkle Proof Inspector -->
+  <div id="proof-modal"
+    class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel bg-slate-900 border-slate-700 max-w-2xl w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="check-check" class="w-5 h-5 text-emerald-400"></i> Cryptographic Merkle Inclusion Proof
+          Inspector
+        </h3>
+        <button onclick="closeProofModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs mono">
+        <div>
+          <span class="text-slate-400 block text-[11px]">TARGET LEAF HASH:</span>
+          <span id="modal-leaf-hash" class="text-cyan-400 break-all select-all font-bold"></span>
+        </div>
+        <div>
+          <span class="text-slate-400 block text-[11px]">MERKLE ROOT:</span>
+          <span id="modal-root-hash" class="text-purple-400 break-all select-all font-bold"></span>
+        </div>
+        <div>
+          <span class="text-slate-400 block text-[11px] mb-1">PROOF PATH (Sibling Hashes Upward):</span>
+          <div id="modal-proof-steps"
+            class="space-y-1.5 max-h-36 overflow-y-auto bg-slate-950 p-2.5 rounded border border-slate-800"></div>
+        </div>
+        <div id="modal-verify-status"
+          class="p-3 rounded bg-emerald-950/60 border border-emerald-600 text-emerald-300 font-bold flex items-center gap-2">
+          <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>
+          <span>MATHEMATICAL PROOF VERIFIED: Authentic and anchored in root ledger.</span>
+        </div>
+      </div>
+      <div class="flex justify-end pt-2">
+        <button onclick="closeProofModal()"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg text-white">
+          Close Inspector
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer
+    class="border-t border-slate-900 bg-slate-950 px-6 py-3 text-xs text-slate-500 flex items-center justify-between">
+    <span>Quantum Digital Signature (QDS) Cyber Threat Detection SOC • Information-Theoretic Security</span>
+    <span class="mono">Bennett Teleportation • Exact Binomial Hypothesis Testing • Merkle Hash Chain</span>
+  </footer>
+
+  <!-- 5-Second Layman Explainer HUD Tooltip -->
+  <div id="explainer-hud">
+    <div class="flex items-start justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <div class="p-1.5 rounded-md bg-indigo-500/20 text-indigo-400"><i data-lucide="help-circle" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <span class="text-[9px] uppercase tracking-wider text-indigo-400 font-semibold block">Plain English
+            Guide</span>
+          <span id="explainer-title" class="font-bold text-xs text-white block">Feature</span>
+        </div>
+      </div>
+      <span id="explainer-countdown"
+        class="text-[10px] mono text-indigo-300 bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-800/40">5.0s</span>
+    </div>
+    <p id="explainer-body" class="text-[11px] text-slate-300 mt-2 leading-relaxed"></p>
+    <div class="explainer-timer-track">
+      <div id="explainer-bar" class="explainer-timer-bar"></div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+
+</html>
